@@ -14,7 +14,7 @@ tokens, so a searchbar or a filtered shop page stays fast on large catalogs.
 
 ## Requirements
 
-PHP 8.5 (64-bit, with `mbstring`) with `pdo_sqlite` linked against SQLite 3.46 or newer (`php -r 'echo (new PDO("sqlite::memory:"))->query("select sqlite_version()")->fetchColumn();'`; check the PHP that serves the site and the one a system crontab runs), WordPress 6.0 or later. The dashboard says when the server falls short, and the plugin doesn't activate. WooCommerce and WPML are optional.
+PHP 8.5 (64-bit, with `mbstring`) with `pdo_sqlite` linked against SQLite 3.46 or newer (`php -r 'echo (new PDO("sqlite::memory:"))->query("select sqlite_version()")->fetchColumn();'`; check the PHP that serves the site and the one a system crontab runs), WordPress 6.0 or later. The plugin refuses to activate when the server falls short (`wp gaffer-search status` says why). WooCommerce and WPML are optional.
 
 ## How a site uses it
 
@@ -27,7 +27,7 @@ has the details.
 
 1. Install and activate the plugin (it checks the server's SQLite first).
 2. Add `config/search.php` to the theme (see the skill) and deploy it.
-3. Build the index: **Settings → Gaffer Search**, or `wp gaffer-search rebuild`.
+3. The index builds itself on the next request (WP-cron); `wp gaffer-search rebuild` builds it now.
 4. `php gaffer doctor --wp` in the theme checks the definitions, the index and a rendered card.
 
 ## Documentation

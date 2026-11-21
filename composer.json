@@ -44,7 +44,7 @@
         }
     },
     "scripts": {
-        "lint": "for f in templates/*.php endpoints/*.php gaffer-search.php uninstall.php; do php -l \"$f\" > /dev/null || exit 1; done",
+        "lint": "for f in endpoints/*.php gaffer-search.php uninstall.php; do php -l \"$f\" > /dev/null || exit 1; done",
         "cs": "phpcs",
         "cbf": "phpcbf",
         "stan": "phpstan analyse --memory-limit=2G",

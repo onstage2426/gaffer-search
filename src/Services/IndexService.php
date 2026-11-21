@@ -69,7 +69,7 @@ class IndexService
                     set_transient("gaffer_search_build_duration_{$n}", round(microtime(true) - $start, 4), MONTH_IN_SECONDS);
                     $this->recordSignature($n, $this->signature($n), $started);
                     $this->writeState($n, ['position' => $position, 'log' => $this->queue->id()]);
-                    // A full build from WP-CLI or the dashboard clears an earlier failure too.
+                    // A full build from WP-CLI clears an earlier failure too.
                     delete_transient('gaffer_search_cron_error_' . $n);
                 } finally {
                     $this->releaseLocks($locks);
@@ -345,7 +345,7 @@ class IndexService
     }
 
     /**
-     * Admin-dashboard preview search — the same SearchRunner path the endpoint uses.
+     * A search for `wp gaffer-search search`: the same SearchRunner path the endpoint uses.
      *
      * @return array<string, mixed>
      * @throws \RuntimeException When the index hasn't been built yet.
@@ -353,7 +353,7 @@ class IndexService
     public function search(string $name, string $query, int $limit = 10): array
     {
         if (!$this->isBuilt($name)) {
-            throw new \RuntimeException("Index '{$name}' not built. Run a rebuild from the Dashboard."); // phpcs:ignore WordPress.Security.EscapeOutput.ExceptionNotEscaped
+            throw new \RuntimeException("Index '{$name}' not built. wp gaffer-search rebuild builds it."); // phpcs:ignore WordPress.Security.EscapeOutput.ExceptionNotEscaped
         }
         return SearchRunner::run($this->pathFor($name, Languages::current()), $query, SearchRunner::options(['limit' => $limit]));
     }
@@ -579,12 +579,27 @@ class IndexService
     }
 
     /**
+     * The temp files cleanupTempFiles() would delete now (`wp gaffer-search clean` without
+     * --delete): a killed build's, older than $minAgeSeconds.
+     *
+     * @return list<string>
+     */
+    public function tempFiles(int $minAgeSeconds = 3600): array
+    {
+        $files = [];
+        foreach (glob($this->indexDir() . '/*.db.tmp-*') ?: [] as $file) {
+            if (is_file($file) && time() - (int) filemtime($file) >= $minAgeSeconds) {
+                $files[] = $file;
+            }
+        }
+        return $files;
+    }
+
+    /**
      * Compare an index with what its builder produces right now — the proof that automatic
      * rebuilds (or anything else) left it in sync. Reads every document from both sides, with
      * documents() (a full build's path), never documentsFor(): the updates are what it checks.
-     * Takes as long as reading the builder's documents, so it runs without a time limit and
-     * reports its progress in the `gaffer_search_verify_progress_{$name}` transient (done, total: the
-     * documents read so far, and how many the index holds), which the dashboard polls.
+     * Takes as long as reading the builder's documents, so it runs without a time limit.
      *
      * @return array{checked: int, missing: list<int>, extra: list<int>, stale: list<int>}
      *   missing — produced by the builder but not in the index; extra — in the index but no
@@ -598,17 +613,9 @@ class IndexService
         $result   = ['checked' => 0, 'missing' => [], 'extra' => [], 'stale' => []];
 
         // Like a build: WordPress only raises the limit itself in wp-admin pages and WP-cron,
-        // not in admin-ajax (the dashboard's Verify) or a CLI script.
+        // not in a CLI script.
         wp_raise_memory_limit('admin');
         set_time_limit(0);
-
-        $transient = "gaffer_search_verify_progress_{$name}";
-        $total     = 0;
-        foreach (Languages::codes() as $language) {
-            $total += Index::exists($this->pathFor($name, $language)) ? $this->indexFor($name, $language)->count() : 0;
-        }
-        $done = 0;
-        set_transient($transient, ['done' => 0, 'total' => $total], 300);
 
         try {
             foreach (Languages::codes() as $language) {
@@ -618,10 +625,6 @@ class IndexService
                 $expected = [];
                 foreach ($this->generateDocs($name, $this->context($language)) as $doc) {
                     $expected[ (int) ($doc['id'] ?? 0)] = self::fingerprint($doc);
-                    $done++;
-                    if ($done % 250 === 0) {
-                        set_transient($transient, ['done' => $done, 'total' => $total], 300);
-                    }
                 }
                 $result['checked'] += count($expected);
 
@@ -638,7 +641,6 @@ class IndexService
                 $result['missing'] = [...$result['missing'], ...array_keys($expected)];
             }
         } finally {
-            delete_transient($transient);
             if ($original !== null) {
                 $adapter->switch($original);
             }
@@ -1064,8 +1066,8 @@ class IndexService
             }
 
             // insert() reads the generator a chunk at a time (Config::$insertChunkSize), so
-            // memory follows the chunk, not the index; the dashboard's progress is updated once
-            // per builder batch.
+            // memory follows the chunk, not the index; the progress (isBuilding()) is updated
+            // once per builder batch.
             $new->insert($this->generateDocs($name, $context), progress: function (int $done) use ($name, $chunkSize, &$count): void {
                 $count = $done;
                 if ($done % $chunkSize === 0) {
@@ -1146,7 +1148,7 @@ class IndexService
         if (!isset($this->indexes[$key])) {
             $path = $this->pathFor($name, $language);
             if (!Index::exists($path)) {
-                throw new \RuntimeException("Index '{$name}' not built. Run a rebuild from the Dashboard."); // phpcs:ignore WordPress.Security.EscapeOutput.ExceptionNotEscaped
+                throw new \RuntimeException("Index '{$name}' not built. wp gaffer-search rebuild builds it."); // phpcs:ignore WordPress.Security.EscapeOutput.ExceptionNotEscaped
             }
             $this->indexes[$key] = new Index($path, readonly: true);
         }

@@ -1,7 +1,7 @@
 # Benchmark
 
 ```
-bun run bench                                   # 100,000 products, 15 runs per request
+php -d memory_limit=2G bench/benchmark.php     # 100,000 products, 15 runs per request
 php -d memory_limit=2G bench/benchmark.php 50000 --runs=5 --json=bench/results/x.json
 ```
 

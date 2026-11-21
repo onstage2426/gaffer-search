@@ -36,21 +36,21 @@ BM25, facets; only its copy in `vendor/` is in this repo) and serves searches fr
   `Labels`, `ConfigLocation`, `ProtectedDir`, `Language/` adapters), `src/Services/`
   (`IndexService` builds per language, `SearchConfig` writes the endpoint config,
   `ChangeTracker`, `IndexRegistry`: what `Engine::define()` registered), `src/Builders/`
-  (products, posts), `src/Bootstrap.php` (also `uninstall()`), the dashboard
-  (`Controllers/Admin/`, `templates/dashboard.php`, `assets/js/admin/admin.js`: status, rebuild,
-  verify, test search, delete, secrets).
+  (products, posts), `src/Bootstrap.php` (also `uninstall()`), WP-CLI (`src/Cli/`: status, rebuild,
+  update, verify, describe, search, clean, rotate-secret). No admin screens: WP-CLI and Gaffer's
+  `doctor --wp` are the interface.
 - No frontend JavaScript: the search JS is Gaffer's (`resources/js/search.js` there).
 - Gaffer's side: `src/Search/`, `resources/ai/*/plugins/gaffer-search`, `resources/js/search*`.
   A contract addition lands in both repos: the feature here, `supports()` checks there (Gaffer's
   `contract-change` skill; `bin/dev/contract gaffer-search` there maps the boundary).
 - Tests: `tests/Unit`, `tests/Endpoint` (PHP's built-in server on the real endpoint with
   per-site fixture configs), `tests/ContractTest.php`, `tests/stubs/wordpress.php`.
-  Benchmark: `bench/` (`bun run bench`, 100k generated products; baseline in `bench/README.md`).
+  Benchmark: `bench/` (`php -d memory_limit=2G bench/benchmark.php`, 100k generated products; baseline in `bench/README.md`).
 
 ## Checks, deploys, releases
 
-- Before committing: `composer check` (phpcs + phpstan + phpunit) and `bun run build`.
-- On a site: `bash deploy.sh <site>/wp-content/plugins/gaffer-search` (builds, generates
+- Before committing: `composer check` (phpcs + phpstan + phpunit).
+- On a site: `bash deploy.sh <site>/wp-content/plugins/gaffer-search` (generates
   `src/WpHubUpdater` if missing, rsyncs, stamps a version like `0.2.2.2` so the auto-updater
   doesn't replace it). Which sites: Gaffer's `local/AGENTS_LOCAL.md`.
 - Browser tests: `php gaffer render:screenshot <path> --fill=… --click=…` in a theme on
@@ -63,7 +63,7 @@ BM25, facets; only its copy in `vendor/` is in this repo) and serves searches fr
   ```bash
   R=$PWD; B=/tmp/gs-build; rm -rf $B; mkdir -p $B/src $B/pkg; git archive HEAD | tar -x -C $B/src; cd $B/src
   composer install -q && vendor/bin/wp-hub-updater GafferSearch src/WpHubUpdater
-  composer install -q --no-dev --optimize-autoloader && bun install && bun run build
+  composer install -q --no-dev --optimize-autoloader
   V=$(git -C "$R" describe --tags --match 'v*' | sed -E 's/^v//; s/-([0-9]+)-g[0-9a-f]+$/.\1/')   # v0.1.0 + 1 commit: 0.1.0.1
   sed -i "s/^ \* Version:.*/ * Version: $V/" gaffer-search.php
   cp .deployignore /tmp/gs-exclude   # docs/migration.md ships (sites read it after updating)
@@ -71,7 +71,7 @@ BM25, facets; only its copy in `vendor/` is in this repo) and serves searches fr
   cd $B/pkg && zip -qr /tmp/gaffer-search.zip gaffer-search
   ```
 
-  Check it: every PHP file passes `php -l`, `assets/dist/` and `src/WpHubUpdater/` are in,
+  Check it: every PHP file passes `php -l`, `src/WpHubUpdater/` is in,
   `vendor/` holds only `onstage2426/fuzor` (and Composer's files).
 
 ## Key design (don't undo without a decision)

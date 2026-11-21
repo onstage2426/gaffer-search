@@ -12,7 +12,7 @@ and use `Gaffer\Search`, and Gaffer talks to the plugin through the engine contr
 
 Everything else is internal and may change in any version: every class (`@internal`, checked by
 `tests/ApiTest.php`), every `gaffer_search_*()` function, the hooks the plugin uses itself, the
-dashboard and its JavaScript, the endpoint files, the index files' format.
+the endpoint files, the index files' format.
 
 `api.txt` lists the public items; `tests/ApiTest.php` compares it with the code, so a change
 fails the tests until `api.txt` is updated on purpose (`UPDATE_API=1 composer test`).

@@ -75,7 +75,7 @@ Start the next audit here; remove an item when it's done or decided.
   `status()`'s `pending` shows when it doesn't.
 - **The web server** (2026-11-21). The endpoint is a PHP file in the plugin folder, served
   directly; a rule blocking PHP in `wp-content/plugins` stops every browser search (the
-  dashboard calls `?check=` on each load). The deny `.htaccess` in the plugin's folders covers
+  `doctor --wp` searches through it over HTTP). The deny `.htaccess` in the plugin's folders covers
   Apache and LiteSpeed only; the daily health check now fetches a probe file from each and
   reports a served folder in `status()`.
 

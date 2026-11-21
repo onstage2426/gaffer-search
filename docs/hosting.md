@@ -7,7 +7,8 @@ contract (`contract.md`); a theme defines its indexes in its `config/search.php`
 
 ## Rotating secrets
 
-Both are buttons on the dashboard's **Settings** tab.
+`wp gaffer-search rotate-secret token` and `wp gaffer-search rotate-secret search` (per site:
+`--url`). They ask first; `--yes` doesn't.
 
 - **Token signing secret:** every token signed before stops verifying (the endpoint answers
   `400` with `invalid_token`), and new tokens are signed with the new secret. Every page cached
@@ -15,7 +16,7 @@ Both are buttons on the dashboard's **Settings** tab.
   full page-cache clear. Visitors with a page already open get `invalid_token` on their next
   search; Gaffer's search JavaScript reports it so the page can say "refresh".
 - **Search secret:** the index file names are derived from it. Every existing index file becomes
-  an orphan (listed on the dashboard, safe to delete), a rebuild of every index is scheduled
+  an orphan (`wp gaffer-search clean` lists them, `--delete` removes them), a rebuild of every index is scheduled
   right away, and searches return nothing until it finishes.
 
 ---
@@ -41,8 +42,8 @@ variable for PHP — both WordPress and the endpoints then use it:
 GAFFER_SEARCH_CONFIG_DIR=/var/www/wp-content/gaffer-search
 ```
 
-The dashboard warns when the layout needs it, and calls the endpoint on every load to confirm it
-finds its config. Index files default to `{uploads}/gaffer-search/` (via `wp_upload_dir()`, so the
+Gaffer's `doctor --wp` searches every index through the endpoint over HTTP and says when it
+doesn't find its config (`config_missing`). Index files default to `{uploads}/gaffer-search/` (via `wp_upload_dir()`, so the
 `UPLOADS` constant and the `upload_path` option are respected — on a network, each site's own
 uploads folder).
 
@@ -103,7 +104,7 @@ Nothing changes in a theme:
 - **WPML** is detected automatically; it's the only language plugin supported.
 - Changing a post updates it **and its translations** in every language's file: a translation
   plugin syncs fields between translations (WCML: stock, prices) with queries that fire no hook.
-  Verify and the dashboard cover every language.
+  `verify`, `search` and `status` cover every language.
 
 ### Multisite
 
@@ -121,14 +122,13 @@ theme defines (`config/search.php`, through Gaffer), so different sites can inde
   `config/search.php` yet (a staged copy is built and checked first), its requests leave the
   endpoint's indexes, the schedules and the index files as the staged copy's processes made them,
   so searches from the stage keep working. A theme that drops its indexes for good leaves them
-  until the plugin is deactivated or the index is deleted on the dashboard. Network-wide deactivation clears every site's
+  until the plugin is deactivated (`wp gaffer-search clean --delete` removes index files no
+  definition uses). Network-wide deactivation clears every site's
   cron jobs; deleting a site deletes its endpoint config (WordPress removes its uploads, and so its
   index files).
 - **Changes from another site:** code that edits site B while running on site A
   (`switch_to_blog()`) schedules the update on site B — for all of site B's indexes, because site
   A can't see which of them the change affects.
-- **Network Admin → Settings → Gaffer Search** lists every site with its indexes, document counts
-  and last update, and links to each site's own dashboard. Building happens per site.
 - **WP-CLI** runs per site: `wp gaffer-search verify --url=https://example.com/shop/`. For every site:
   `wp site list --field=url | xargs -I{} wp gaffer-search verify --url={}`. (A `--network` flag can't
   exist: one process only loads one site's theme, and so only that site's indexes.)
@@ -161,7 +161,7 @@ A change to anything an index depends on updates the documents it touched, a few
   hierarchical taxonomy (categories) every descendant's posts store the term as an ancestor, so a
   new slug, a new parent, or a deletion there schedules a **full rebuild** a minute later.
 - **Safety:** nothing heavy runs while a post is being saved, and a failure never reaches the
-  editor — it's logged and shown on the dashboard, and the position only moves after the
+  editor — it's logged and shown by `wp gaffer-search status`, and the position only moves after the
   files are written, so the next run tries again.
   A full rebuild and an update never write at the same time, and a second rebuild (another
   tab, WP-CLI, cron) is refused before it builds anything: each takes the `flock()` of every
@@ -203,10 +203,17 @@ In production, set `define('DISABLE_WP_CRON', true);` and run WordPress's cron f
   running) or no index is defined in that request (the theme isn't
   active). A failure wins over a skip.
 - `wp gaffer-search status [--format=json]` — every defined index for monitoring: built,
-  documents, a build running, the last build's error, changes waiting. Exits **1** when an index
-  isn't built, has an error, or has changes waiting for more than 15 minutes (the updates don't
-  run on this server), or when no index is defined; **0** otherwise.
+  documents, a build running, the last build's error, changes waiting, the daily health check.
+  Exits **1** when an index isn't built, has an error, has changes waiting for more than 15
+  minutes (the updates don't run on this server) or a served folder, when no index is defined,
+  or when this PHP lacks a requirement (an SQLite older than 3.46); **0** otherwise.
 - `wp gaffer-search verify [<index>] [--fix]` — compare the index with the database, `--fix` to update what differs (see below).
+- `wp gaffer-search search <index> [<query>]` — search this site's file of the index (the hits'
+  IDs and titles, the total, the time); `--format=json` for the whole response.
+- `wp gaffer-search clean [--delete]` — index files no definition uses (an index the theme
+  dropped, a rotated search secret) and a killed build's temp files.
+- `wp gaffer-search rotate-secret <token|search>` — see "Rotating secrets".
+- `wp gaffer-search describe [<index>]` — the schema, document count and file revision.
 
 The plugin's daily health check (`gaffer_search_health_check`: a sample of each index compared
 with the database, and the protected folders fetched like a visitor, see "Verifying an index")
@@ -216,7 +223,7 @@ well (`wp cron event run --due-now`), or it never runs.
 Without either, nothing applies the logged changes: WP-cron needs traffic and a loopback request
 to `wp-cron.php`, which a password-protected (HTTP auth) or firewalled site refuses, and WP-CLI
 never runs WP-cron. The index then misses every change (a product trashed from WP-CLI stays
-findable) until a rebuild. The dashboard, `wp gaffer-search verify` and `status()` (`pending`,
+findable) until a rebuild. `wp gaffer-search verify`, `wp gaffer-search status` and `status()` (`pending`,
 `pending_since`; Gaffer's `doctor --wp`) show the changes waiting.
 
 On a network, run each per site (`wp site list --field=url | xargs -I{} wp gaffer-search update --url={}`).
@@ -247,7 +254,7 @@ define('GAFFER_SEARCH_INDEX_DIR', '/var/lib/gaffer-search'); // local disk, the 
 
 ### Verifying an index
 
-`wp gaffer-search verify [<index>]` (and the **Verify** button on the dashboard) compares the index with
+`wp gaffer-search verify [<index>]` compares the index with
 what its builder produces right now and lists documents that are missing, extra, or outdated.
 It exits non-zero when anything differs, so it can run in a cron job or deploy check.
 `--fix` updates the documents that differ through the update log (other servers apply

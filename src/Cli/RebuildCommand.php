@@ -30,7 +30,7 @@ final class RebuildCommand
     ) {}
 
     /**
-     * Rebuild an index in full: every language's file, then published for the other web servers.
+     * Rebuild an index in full: every language's file.
      * Exits 0 when built, 1 when a build failed, 2 when one was skipped (already running) or no index is defined.
      *
      * ## OPTIONS

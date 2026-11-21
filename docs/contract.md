@@ -147,7 +147,7 @@ Whether the engine has a feature added after contract 1's first release.
 ### `define(array $indexes): void`
 
 The site's indexes, for this request. Call it before `init` (Gaffer calls it while the theme
-boots); the engine reads definitions from `init` on, for searches, builds and the dashboard.
+boots); the engine reads definitions from `init` on, for searches, builds and WP-CLI.
 Every request that may search or build calls it; a build that runs in a request without
 definitions keeps the old index (see `status()`).
 
@@ -156,7 +156,7 @@ definitions keeps the old index (see `status()`).
 | Key | Type | Meaning |
 |---|---|---|
 | `type` | `'products'` \| `'posts'` | required. `products`: WooCommerce products with prices, stock, visibility and attributes; `posts`: any post types |
-| `label` | string | shown in the dashboard; default: the name |
+| `label` | string | a display name; default: the name |
 | `post_types` | list | `posts`: which; default `['post']` |
 | `language` | string | ignored: text is indexed as written, without stemming or stop words (stemming went with Fuzor 2's stemmers). `problems()` names it, and the index is defined without it. Word forms: the last word is a prefix and typos find many; `synonyms` for the rest |
 | `searchable` | list of fields | the fields the words are searched in; default: every text field |
@@ -171,7 +171,7 @@ definitions keeps the old index (see `status()`).
 | `variation_price` | `'min'` \| `'default'` | `products`: which variation a variable product's `price`, `regular_price` and `sale_price` are: its cheapest, or its default one's |
 | `rebuild` | `'hourly'` \| `'twicedaily'` \| `'daily'` \| `''` | a full rebuild on this schedule besides the updates per change; default `''` |
 | `version` | string | anything that changes when the documents would: when it differs from the version the index was built from, the engine rebuilds in the background and keeps serving the old index until the new one is ready |
-| `document` | `?Closure(array $document, string $index): ?array` | adds fields to each document as it is built (the rendered cards); returns the document, or null to leave that post out of the index. Runs during builds: in WP-cron, WP-CLI and the dashboard, with the theme loaded. An exception fails the build: the old index stays, `status()` has the error |
+| `document` | `?Closure(array $document, string $index): ?array` | adds fields to each document as it is built (the rendered cards); returns the document, or null to leave that post out of the index. Runs during builds: in WP-cron and WP-CLI, with the theme loaded. An exception fails the build: the old index stays, `status()` has the error |
 | `labels` | `?Closure(string $index): array` | the display names of values of fields without terms (`meta`, `fields`, the built-in `stock_status`): returns field → map value → name. Runs whenever the engine writes an index's names (builds, and updates that meet a value without a name), in the same context as `document` (the site and language of the file being written); a field the index stores terms in keeps its term names. Names then go out like term names (`labels` in responses, `hit.labels`) |
 
 Documents have `id`, `title`, `url`, `thumbnail`, `date`, the fields `meta` and `taxonomies` map

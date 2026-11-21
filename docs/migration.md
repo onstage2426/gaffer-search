@@ -5,6 +5,16 @@ to find the affected code, what to do.
 
 ## Unreleased
 
+### No admin screens: everything is WP-CLI (nothing to change in a theme)
+
+- **Settings → Gaffer Search** and **Network Admin → Settings → Gaffer Search** are gone, and
+  with them the plugin's JavaScript build. Everything they did is a WP-CLI command
+  (`docs/hosting.md`): `wp gaffer-search status` (now also names what this PHP lacks),
+  `rebuild`, `verify [--fix]`, `search <index> [<query>]` (the test search), `clean [--delete]`
+  (index files no definition uses, a killed build's temp files), `rotate-secret <token|search>`.
+  On a network add `--url=<site>`. Gaffer's `php gaffer doctor --wp` checks the endpoint over HTTP
+  (the dashboard's config check). Find: bookmarks or notes that point to the screen.
+
 ### Several web servers build by themselves (`GAFFER_SEARCH_SNAPSHOT_DIR` is gone)
 
 - Full rebuilds are no longer shared between web servers through `GAFFER_SEARCH_SNAPSHOT_DIR`

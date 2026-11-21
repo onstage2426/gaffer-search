@@ -1,9 +1,5 @@
 .git
 .github
-node_modules
-vite.config.js
-package.json
-bun.lock
 phpcs.xml.dist
 phpstan.neon
 .editorconfig
@@ -12,8 +8,6 @@ phpstan.neon
 rector.php
 composer.json
 composer.lock
-assets/css
-assets/js
 hu.json
 stubs
 deploy.sh

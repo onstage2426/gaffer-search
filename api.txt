@@ -14,8 +14,11 @@ query, total, offset, limit, results, facets, facetStats, labels, exhaustive, ap
 config_missing, index_missing, index_not_built, index_unknown, invalid_token, language_unknown, search_failed, token_expired, token_required
 
 # WP-CLI
+wp gaffer-search clean
 wp gaffer-search describe
 wp gaffer-search rebuild
+wp gaffer-search rotate-secret
+wp gaffer-search search
 wp gaffer-search status
 wp gaffer-search update
 wp gaffer-search verify

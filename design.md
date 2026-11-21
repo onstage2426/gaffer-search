@@ -34,7 +34,7 @@ Gaffer     Gaffer\Search\*: reads the config, renders cards, gives templates the
            SEO and redirects, the JS components, doctor checks, guideline, MCP tool
              │  the engine contract (versioned, data only, documented in docs/contract.md)
 plugin     gaffer-search: indexes (builders, change tracking, languages, multisite,
-           several servers), the endpoints, the dashboard (status), WP-CLI
+           several servers), the endpoints, WP-CLI
 ```
 
 - **Themes talk only to Gaffer.** No theme code calls the plugin. Its API is composer-locked, so a

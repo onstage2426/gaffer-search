@@ -27,13 +27,6 @@ jobs:
       - name: Remove dev dependencies
         run: composer install --no-dev --optimize-autoloader
 
-      - uses: oven-sh/setup-bun@v2
-        with:
-          bun-version: latest
-
-      - name: Install JS dependencies and build assets
-        run: bun install && bun run build
-
       - name: Create plugin ZIP
         run: |
           mkdir /tmp/gaffer-search

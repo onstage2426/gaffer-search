@@ -15,6 +15,11 @@ class WP_CLI
 
     public static function warning(string $message): void {}
 
+    public static function success(string $message): void {}
+
+    /** @param array<string, mixed> $assoc_args Skips the question with --yes. */
+    public static function confirm(string $question, array $assoc_args = []): void {}
+
     public static function halt(int $returnCode): never
     {
         exit($returnCode);

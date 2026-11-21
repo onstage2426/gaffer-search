@@ -4,8 +4,6 @@ declare(strict_types=1);
 
 namespace GafferSearch;
 
-use GafferSearch\Controllers\Admin\DashboardController;
-use GafferSearch\Controllers\Admin\NetworkController;
 use GafferSearch\Services\ChangeTracker;
 use GafferSearch\Services\HealthCheck;
 use GafferSearch\Services\IndexBusyException;
@@ -17,7 +15,6 @@ use GafferSearch\Services\UpdateQueue;
 use GafferSearch\Support\ConfigLocation;
 use GafferSearch\Support\ProtectedDir;
 use GafferSearch\Support\Requirements;
-use GafferSearch\Support\Vite;
 
 /** @internal Not part of the public API (see API.md): may change in any version. */
 class Bootstrap
@@ -116,22 +113,14 @@ class Bootstrap
         @rmdir($dir); // phpcs:ignore WordPress.PHP.NoSilencedErrors.Discouraged,WordPress.WP.AlternativeFunctions.file_system_operations_rmdir -- only when empty
     }
 
-    private readonly string $pluginDir;
-    private ?DashboardController $dashboard = null;
-
     private SettingsService $settings;
     private IndexRegistry $registry;
     private IndexService $index;
 
-    public function __construct(private readonly string $pluginFile)
-    {
-        $this->pluginDir = dirname($pluginFile);
-    }
+    public function __construct(private readonly string $pluginFile) {}
 
     public function init(): void
     {
-        Vite::init($this->pluginFile);
-
         $this->settings = new SettingsService();
 
         // Contract 1 for Gaffer (docs/contract.md): from plugins_loaded on, before the theme boots.
@@ -145,10 +134,9 @@ class Bootstrap
         add_filter('cron_schedules', fn(array $s): array => $this->registerCronIntervals($s));
         add_action('update_option_gaffer_search_options', fn() => $this->writeSearchConfig());
         add_action('upgrader_process_complete', fn($u, array $opts) => $this->onUpgrade($opts), 10, 2);
-        add_filter('plugin_action_links_' . plugin_basename($this->pluginFile), fn(array $l): array => $this->addSettingsLink($l));
 
         // Multisite: a deleted site's endpoint config goes with it (WordPress removes its uploads,
-        // and so its index files); Network Admin → Settings → Gaffer Search lists every site.
+        // and so its index files).
         add_action('wp_delete_site', function (\WP_Site $site): void {
             wp_delete_file(ConfigLocation::forContentDir(WP_CONTENT_DIR, (int) $site->blog_id));
         });
@@ -157,7 +145,6 @@ class Bootstrap
             global $wpdb;
             return is_array($tables) ? [...$tables, $wpdb->get_blog_prefix( (int) $siteId) . UpdateQueue::TABLE] : $tables;
         }, 10, 2);
-        add_action('network_admin_menu', fn() => $this->registerNetworkMenu());
     }
 
     public function activate(): void
@@ -195,6 +182,9 @@ class Bootstrap
             \WP_CLI::add_command('gaffer-search rebuild', new \GafferSearch\Cli\RebuildCommand($this->index, $this->registry));
             \WP_CLI::add_command('gaffer-search update', new \GafferSearch\Cli\UpdateCommand($this->index, $this->registry));
             \WP_CLI::add_command('gaffer-search status', new \GafferSearch\Cli\StatusCommand(new Engine()));
+            \WP_CLI::add_command('gaffer-search search', new \GafferSearch\Cli\SearchCommand($this->index, $this->registry));
+            \WP_CLI::add_command('gaffer-search clean', new \GafferSearch\Cli\CleanCommand($this->index));
+            \WP_CLI::add_command('gaffer-search rotate-secret', new \GafferSearch\Cli\RotateSecretCommand($this->settings, $this->registry));
         }
 
         // The endpoints can't work without their config; write it on first boot, and again
@@ -237,8 +227,6 @@ class Bootstrap
         }
 
         add_action('gaffer_search_indexes_built', fn() => $this->writeSearchConfig());
-        add_action('wp_ajax_gaffer_search_rotate_search_secret', fn() => $this->handleRotateSecret($this->rotateSearchSecret(...)));
-        add_action('wp_ajax_gaffer_search_rotate_token_secret', fn() => $this->handleRotateSecret($this->rotateTokenSecret(...)));
         add_action('admin_init', fn() => $this->ensureCronSchedules());
         // A folder made before the protection files existed, or one they were deleted from.
         add_action('admin_init', function (): void {
@@ -246,14 +234,6 @@ class Bootstrap
                 ProtectedDir::ensure( (string) $this->settings->get('index_dir'));
             }
         });
-        add_action('admin_menu', fn() => $this->registerMenu());
-        add_action('admin_enqueue_scripts', fn(string $hook) => $this->enqueueAssets($hook));
-        add_action('wp_ajax_gaffer_search_rebuild', fn() => $this->dashboard()->handleRebuild());
-        add_action('wp_ajax_gaffer_search', fn() => $this->dashboard()->handleSearch());
-        add_action('wp_ajax_gaffer_search_delete_index', fn() => $this->dashboard()->handleDelete());
-        add_action('wp_ajax_gaffer_search_progress', fn() => $this->dashboard()->handleProgress());
-        add_action('wp_ajax_gaffer_search_cleanup_temp', fn() => $this->dashboard()->handleCleanupTemp());
-        add_action('wp_ajax_gaffer_search_verify', fn() => $this->dashboard()->handleVerify());
     }
 
     /**
@@ -343,64 +323,6 @@ class Bootstrap
         (new UpdateQueue())->prune();
     }
 
-    /**
-     * @param  array<int|string, string> $links
-     * @return array<int|string, string>
-     */
-    private function addSettingsLink(array $links): array
-    {
-        array_unshift($links, '<a href="' . esc_url(admin_url('options-general.php?page=gaffer-search')) . '">' . __('Settings', 'default') . '</a>');
-        return $links;
-    }
-
-    private function registerMenu(): void
-    {
-        add_options_page(
-            __('Gaffer Search', 'gaffer-search'),
-            __('Gaffer Search', 'gaffer-search'),
-            'manage_options',
-            'gaffer-search',
-            fn() => $this->dashboard()->render(),
-        );
-    }
-
-    private function registerNetworkMenu(): void
-    {
-        add_submenu_page(
-            'settings.php',
-            __('Gaffer Search', 'gaffer-search'),
-            __('Gaffer Search', 'gaffer-search'),
-            'manage_network_options',
-            'gaffer-search-network',
-            fn() => (new NetworkController($this->pluginDir . '/templates'))->render(),
-        );
-    }
-
-    private function enqueueAssets(string $hook): void
-    {
-        if ($hook !== 'settings_page_gaffer-search') {
-            return;
-        }
-
-        wp_enqueue_script(
-            'gaffer-search-admin',
-            Vite::url('assets/js/admin/admin.js'),
-            [],
-            Vite::ver('assets/js/admin/admin.js'),
-            true,
-        );
-
-        foreach (Vite::css('assets/js/admin/admin.js') as $i => $cssUrl) {
-            wp_enqueue_style("gaffer-search-admin-{$i}", $cssUrl, [], Vite::ver('assets/js/admin/admin.js'));
-        }
-        wp_localize_script('gaffer-search-admin', 'gafferSearch', [
-            'nonce'          => wp_create_nonce('gaffer_search'),
-            'ajaxUrl'        => admin_url('admin-ajax.php'),
-            'searchUrl'      => (new Engine())->endpoint(),
-            'siteId'         => get_current_blog_id(),
-        ]);
-    }
-
     private function ensureCronSchedules(): void
     {
         $currentNames = $this->registry->names();
@@ -429,17 +351,6 @@ class Bootstrap
                 $this->index->isBuilt($name),
             );
         }
-    }
-
-    private function dashboard(): DashboardController
-    {
-        return $this->dashboard ??= new DashboardController(
-            $this->index,
-            $this->registry,
-            $this->pluginDir . '/templates',
-            $this->searchConfig(),
-            (new Engine())->endpoint(),
-        );
     }
 
     private function searchConfig(): SearchConfig
@@ -473,39 +384,6 @@ class Bootstrap
 
         $seconds = (int) (wp_get_schedules()[$interval]['interval'] ?? 0);
         wp_schedule_event(time() + ($built ? $seconds : 0), $interval, $hook);
-    }
-
-    private function handleRotateSecret(callable $rotate): void
-    {
-        check_ajax_referer('gaffer_search');
-        if (!current_user_can('manage_options')) {
-            wp_send_json_error('Unauthorized', 403);
-        }
-        $rotate();
-        wp_send_json_success();
-    }
-
-    /**
-     * Every token signed before stops verifying, so pages cached with one fail their searches
-     * until the cache is cleared.
-     */
-    private function rotateTokenSecret(): void
-    {
-        $this->settings->rotateTokenSecret();
-        $this->searchConfig()->write();
-    }
-
-    /**
-     * Every index file gets a new name, so all indexes are rebuilt; searches find nothing until
-     * they are.
-     */
-    private function rotateSearchSecret(): void
-    {
-        $this->settings->rotateSearchSecret();
-        $this->searchConfig()->write();
-        foreach ($this->registry->names() as $name) {
-            ChangeTracker::schedule($name, 0);
-        }
     }
 
     /** @param array<string, mixed> $options */

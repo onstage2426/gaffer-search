@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace GafferSearch\Cli;
 
 use GafferSearch\Engine;
+use GafferSearch\Support\Requirements;
 use WP_CLI;
 
 /**
@@ -22,7 +23,7 @@ final class StatusCommand
     public function __construct(private readonly Engine $engine) {}
 
     /**
-     * Every defined index's state; exits 1 when one isn't built, has an error, or has updates waiting over 15 minutes.
+     * Every defined index's state; exits 1 when one isn't built, has an error, or has updates waiting over 15 minutes, or this PHP lacks a requirement.
      *
      * ## OPTIONS
      *
@@ -45,10 +46,12 @@ final class StatusCommand
      */
     public function __invoke(array $args, array $assoc = []): void
     {
-        $status = $this->engine->status();
-        $now    = time();
-        $rows   = [];
-        $ok     = true;
+        $status   = $this->engine->status();
+        $now      = time();
+        $rows     = [];
+        // What this PHP lacks (an old SQLite, no pdo_sqlite): no index can be built or searched.
+        $problems = Requirements::problems();
+        $ok       = $problems === [];
         foreach ($status as $name => $index) {
             $problem = self::problem($index, $now);
             $ok      = $ok && $problem === null;
@@ -56,7 +59,7 @@ final class StatusCommand
         }
 
         if (($assoc['format'] ?? 'table') === 'json') {
-            WP_CLI::log( (string) wp_json_encode(['ok' => $ok, 'indexes' => $rows], JSON_PRETTY_PRINT | JSON_UNESCAPED_SLASHES | JSON_INVALID_UTF8_SUBSTITUTE));
+            WP_CLI::log( (string) wp_json_encode(['ok' => $ok, 'requirements' => $problems, 'indexes' => $rows], JSON_PRETTY_PRINT | JSON_UNESCAPED_SLASHES | JSON_INVALID_UTF8_SUBSTITUTE));
         } elseif ($rows === []) {
             WP_CLI::warning('No index is defined in this request (the theme defines them: is it active?).');
         } else {
@@ -73,6 +76,12 @@ final class StatusCommand
             foreach ([array_combine($columns, $columns), ...$table] as $row) {
                 $cells = array_map(static fn(string $c, int $w): string => str_pad( (string) $row[ $c ], $w), $columns, $widths);
                 WP_CLI::log(rtrim(implode('  ', $cells)));
+            }
+        }
+
+        if (($assoc['format'] ?? 'table') !== 'json') {
+            foreach ($problems as $problem) {
+                WP_CLI::warning($problem);
             }
         }
 

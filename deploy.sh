@@ -4,8 +4,8 @@
 # so a change can be tried on a real site without cutting a release.
 #
 # Usage:
-#   GAFFER_SEARCH_DEPLOY_TARGET=/path/to/wp-content/plugins/gaffer-search bun run deploy
-#   bun run deploy -- /path/to/wp-content/plugins/gaffer-search
+#   bash deploy.sh /path/to/wp-content/plugins/gaffer-search
+#   GAFFER_SEARCH_DEPLOY_TARGET=/path/to/wp-content/plugins/gaffer-search bash deploy.sh
 
 set -euo pipefail
 
@@ -16,8 +16,6 @@ if [[ -z "$target" ]]; then
 fi
 
 root_dir="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
-
-(cd "$root_dir" && bun run build)
 
 # The prefixed updater library the plugin file requires: release builds generate it
 # (.github/workflows/release.yml); a source checkout doesn't have it until this runs.
