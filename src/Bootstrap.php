@@ -36,14 +36,14 @@ class Bootstrap
         });
     }
 
-    /** The updater's state (an option; a network option on multisite) and its check job. */
-    private const string UPDATER_STATE = 'hu_state-gaffer-search';
+    /** The updater's options (its state and caches; network options on multisite) and its check job. */
+    private const array UPDATER_OPTIONS = ['hu_state-gaffer-search', 'hu_api_cache-gaffer-search', 'hu_metadata_cache-gaffer-search'];
     private const string UPDATER_CRON  = 'hu_cron_check_updates-gaffer-search';
 
     /**
      * Remove everything the plugin made, on every site (uninstall.php): scheduled jobs, index
      * files with their versions, labels, positions and temp files, this server's snapshot
-     * folder, the update log table, the options and transients, the updater's state, and the
+     * folder, the update log table, the options and transients, the updater's state and caches, and the
      * endpoint configs. Other web servers keep their own index folders
      * (GAFFER_SEARCH_INDEX_DIR) until they are cleaned up by hand.
      */
@@ -62,11 +62,11 @@ class Bootstrap
                 "DELETE FROM {$wpdb->options} WHERE option_name LIKE 'gaffer\\_search\\_%' OR option_name LIKE '\\_transient\\_gaffer\\_search\\_%' OR option_name LIKE '\\_transient\\_timeout\\_gaffer\\_search\\_%'",
             );
             wp_delete_file(ConfigLocation::forContentDir(WP_CONTENT_DIR, $site));
-            delete_option(self::UPDATER_STATE);
+            array_map(delete_option(...), self::UPDATER_OPTIONS);
             wp_clear_scheduled_hook(self::UPDATER_CRON);
         });
         if (is_multisite()) {
-            delete_site_option(self::UPDATER_STATE);
+            array_map(delete_site_option(...), self::UPDATER_OPTIONS);
         }
 
         $root = ConfigLocation::dirForContentDir(WP_CONTENT_DIR);
