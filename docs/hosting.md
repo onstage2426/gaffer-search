@@ -195,6 +195,11 @@ In production, set `define('DISABLE_WP_CRON', true);` and run WordPress's cron f
   run on this server), or when no index is defined; **0** otherwise.
 - `wp gaffer-search verify [<index>] [--fix]` — compare the index with the database, `--fix` to update what differs (see below).
 
+The plugin's daily health check (`gaffer_search_health_check`: a sample of each index compared
+with the database, and the protected folders fetched like a visitor, see "Verifying an index")
+is a WP-cron job too: with `DISABLE_WP_CRON`, run WordPress's due jobs from the system cron as
+well (`wp cron event run --due-now`), or it never runs.
+
 Without either, nothing applies the logged changes: WP-cron needs traffic and a loopback request
 to `wp-cron.php`, which a password-protected (HTTP auth) or firewalled site refuses, and WP-CLI
 never runs WP-cron. The index then misses every change (a product trashed from WP-CLI stays
@@ -249,4 +254,10 @@ It exits non-zero when anything differs, so it can run in a cron job or deploy c
 `--fix` updates the documents that differ through the update log (other servers apply
 them with their next update) and checks those documents again: for an index built before a switch, while the
 plugin was inactive and content changes weren't tracked. If they still differ, rebuild.
+A sample of it runs every day on its own: about 60 documents per index (half picked from the
+database, half from the index) are compared, and the ones that differ go into the update log.
+`status()` (Gaffer's `doctor --wp`) reports how many there were: more than 0 means something
+writes without WordPress's hooks. The same job fetches a probe file from each folder the plugin
+protects over HTTP; one that's served is a `wp gaffer-search status` problem.
+
 `wp gaffer-search describe [<index>]` shows the schema, document count, and file revision.

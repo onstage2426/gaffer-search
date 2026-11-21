@@ -7,6 +7,7 @@ namespace GafferSearch;
 use GafferSearch\Builders\ContentIndexBuilder;
 use GafferSearch\Builders\IndexBuilderInterface;
 use GafferSearch\Builders\ProductIndexBuilder;
+use GafferSearch\Services\HealthCheck;
 use GafferSearch\Services\IndexRegistry;
 use GafferSearch\Services\IndexService;
 use GafferSearch\Services\Locks;
@@ -32,7 +33,7 @@ final class Engine
      *
      * @var list<string>
      */
-    private array $features = ['facet_stats', 'filter_groups', 'pending_updates', 'search_codes'];
+    private array $features = ['facet_stats', 'filter_groups', 'pending_updates', 'search_codes', 'health_checks'];
 
     private const array TYPES = ['products', 'posts'];
 
@@ -158,13 +159,15 @@ final class Engine
         return $problems;
     }
 
-    /** @return array<string, array{built: bool, documents: int, version: ?string, building: bool, error: ?string, pending: int, pending_since: ?int}> */
+    /** @return array<string, array{built: bool, documents: int, version: ?string, building: bool, error: ?string, pending: int, pending_since: ?int, drift: ?int, drift_checked: ?int, served: ?list<string>}> */
     public function status(): array
     {
         $service = $this->service();
         $stats   = $service->stats();
         $status  = [];
+        $served  = HealthCheck::served();
         foreach ((new IndexRegistry())->names() as $name) {
+            $drift         = HealthCheck::drift($name);
             $error         = get_transient('gaffer_search_cron_error_' . $name);
             $pending       = $service->pendingUpdates($name);
             $status[$name] = [
@@ -175,6 +178,9 @@ final class Engine
                 'error'     => is_array($error) && is_string($error['message'] ?? null) ? $error['message'] : null,
                 'pending'       => $pending['count'],
                 'pending_since' => $pending['since'],
+                'drift'         => $drift !== null ? $drift['differing'] : null,
+                'drift_checked' => $drift !== null ? $drift['time'] : null,
+                'served'        => $served,
             ];
         }
 

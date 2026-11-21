@@ -89,6 +89,7 @@ final class StatusCommand
         return match (true) {
             !($index['built'] ?? false) => ($index['building'] ?? false) ? 'not built yet (building now)' : 'not built',
             is_string($index['error'] ?? null) => (string) $index['error'],
+            is_array($index['served'] ?? null) && $index['served'] !== [] => 'a visitor can download files from ' . implode(', ', $index['served']) . ' (the index holds hidden documents too): block it in the web server (docs/hosting.md)',
             is_int($index['pending_since'] ?? null) && $now - $index['pending_since'] > self::STALE_AFTER => 'changes waiting since ' . gmdate('Y-m-d H:i', $index['pending_since']) . ' UTC: the updates don\'t run (WP-cron or wp gaffer-search update)',
             default => null,
         };

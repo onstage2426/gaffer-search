@@ -214,6 +214,9 @@ Per defined index:
 | `error` | ?string | the last build's error, or why a build was skipped (no definitions in that request) |
 | `pending` | int | feature `pending_updates`: content changes logged but not yet applied to this server's index (WP-cron or `wp gaffer-search update` applies them within seconds) |
 | `pending_since` | ?int | feature `pending_updates`: when the oldest of them was logged (Unix time), null when none: an old one means the updates don't run here |
+| `drift` | ?int | feature `health_checks`: how many documents of the last daily sample (about 60, compared with the database) differed: a write that fires no hook (direct SQL, an import past WordPress). They were put in the update log, so the next update fixes them; more than 0 means such writes happen. Null before the first check |
+| `drift_checked` | ?int | feature `health_checks`: when that sample was taken (Unix time), null before the first one |
+| `served` | ?list<string> | feature `health_checks`: the plugin's folders (relative to `wp-content`) that served a probe file to a request like a visitor's in the last daily check: an index file there can be downloaded, hidden documents too (nginx ignores the deny `.htaccess`). Empty: none did; null: not checked yet, or no folder inside the web root |
 
 ### `endpoint(): string`
 
@@ -273,6 +276,7 @@ adds; from the fourth on, the plugin version that added it. Every release has th
 - `filter_groups`: in a Filter, `'field' => ['all' => [...]]` and the groups `any`, `all` and `not` (Fuzor's `Filter`), from PHP, in tokens and in the browser's `filter[]`. A Filter without them means and costs what it did.
 - `pending_updates`: `status()`'s `pending` and `pending_since`: the content changes an index hasn't taken in yet. The update job runs from WP-cron, which a password-protected or offline site never runs: the index then misses every change until a rebuild.
 - `search_codes` (0.2.0): `search()`'s `code`: an empty response because the index isn't built or the search failed, so a page built from it (an archive, a slider) can stay out of page caches and search engines instead of being kept as an empty page.
+- `health_checks` (0.2.0): `status()`'s `drift`, `drift_checked` and `served`, from a daily job per site: what nothing else notices (content changed without a hook, index files served over HTTP).
 
 ## Fixtures
 

@@ -7,6 +7,7 @@ namespace GafferSearch;
 use GafferSearch\Controllers\Admin\DashboardController;
 use GafferSearch\Controllers\Admin\NetworkController;
 use GafferSearch\Services\ChangeTracker;
+use GafferSearch\Services\HealthCheck;
 use GafferSearch\Services\IndexBusyException;
 use GafferSearch\Services\IndexRegistry;
 use GafferSearch\Services\IndexService;
@@ -31,6 +32,7 @@ class Bootstrap
             wp_unschedule_hook(ChangeTracker::REBUILD_HOOK);
             wp_unschedule_hook(ChangeTracker::UPDATE_HOOK);
             wp_unschedule_hook(ChangeTracker::ENSURE_HOOK);
+            wp_unschedule_hook(HealthCheck::HOOK);
         });
     }
 
@@ -216,6 +218,10 @@ class Bootstrap
         add_action(ChangeTracker::REBUILD_HOOK, fn($name) => $this->runRequestedBuild( (string) $name));
         add_action(ChangeTracker::ENSURE_HOOK, fn($name) => $this->runEnsureBuild( (string) $name));
         add_action(ChangeTracker::UPDATE_HOOK, fn() => $this->runScheduledUpdates());
+        add_action(HealthCheck::HOOK, fn() => (new HealthCheck($this->index, $this->registry, $this->settings))->run());
+        if ($this->registry->names() !== []) {
+            HealthCheck::schedule();
+        }
         // Per site, on its first request with this plugin version (network activation sets up nothing per site).
         $queue = new UpdateQueue();
         if ($queue->install()) {

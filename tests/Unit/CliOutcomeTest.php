@@ -25,6 +25,8 @@ final class CliOutcomeTest extends TestCase
         self::assertNull(StatusCommand::problem($healthy, $now));
         self::assertNull(StatusCommand::problem([...$healthy, 'pending' => 3, 'pending_since' => $now - 60], $now), 'changes from a minute ago: the job runs soon');
         self::assertStringContainsString('waiting since', (string) StatusCommand::problem([...$healthy, 'pending' => 3, 'pending_since' => $now - 3600], $now));
+        self::assertNull(StatusCommand::problem([...$healthy, 'served' => []], $now), 'checked: nothing served');
+        self::assertStringContainsString('uploads/gaffer-search', (string) StatusCommand::problem([...$healthy, 'served' => ['uploads/gaffer-search']], $now));
         self::assertSame('not built yet (building now)', StatusCommand::problem([...$healthy, 'built' => false, 'building' => true], $now));
         self::assertSame('boom', StatusCommand::problem([...$healthy, 'error' => 'boom'], $now));
     }

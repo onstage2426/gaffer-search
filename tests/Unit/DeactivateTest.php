@@ -6,6 +6,7 @@ namespace GafferSearch\Tests\Unit;
 
 use GafferSearch\Bootstrap;
 use GafferSearch\Services\ChangeTracker;
+use GafferSearch\Services\HealthCheck;
 use GafferSearch\Tests\TestCase;
 use GafferSearchTestWordPress;
 
@@ -23,6 +24,7 @@ final class DeactivateTest extends TestCase
             ChangeTracker::REBUILD_HOOK,
             ChangeTracker::UPDATE_HOOK,
             ChangeTracker::ENSURE_HOOK,
+            HealthCheck::HOOK,
         ], GafferSearchTestWordPress::$unscheduled);
     }
 }

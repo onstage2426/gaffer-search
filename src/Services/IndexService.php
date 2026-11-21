@@ -829,6 +829,39 @@ class IndexService
         return $result;
     }
 
+    /**
+     * Documents for a sample check (HealthCheck): about half drawn at random from the watched
+     * posts in the database (what the index may be missing or hold outdated), half a slice of
+     * the index at a random place (what it may hold that's gone). The first language's file
+     * stands for the others: verifyIds() checks every language. Empty when the index isn't built.
+     *
+     * @return list<int>
+     */
+    public function sampleIds(string $name, int $count): array
+    {
+        global $wpdb;
+        $language = Languages::codes()[0] ?? null;
+        if (!Index::exists($this->pathFor($name, $language))) {
+            return [];
+        }
+        $half  = max(1, intdiv($count, 2));
+        $types = $this->builderFor($name)->watches()->postTypes;
+        $ids   = [];
+        if ($types !== []) {
+            $in  = implode(',', array_fill(0, count($types), '%s'));
+            $ids = array_map(intval(...), (array) $wpdb->get_col($wpdb->prepare("SELECT ID FROM {$wpdb->posts} WHERE post_type IN ({$in}) ORDER BY RAND() LIMIT %d", ...[...$types, $half]))); // phpcs:ignore WordPress.DB.PreparedSQL.InterpolatedNotPrepared,WordPress.DB.PreparedSQLPlaceholders.UnfinishedPrepare,WordPress.DB.DirectDatabaseQuery -- the table name and one %s per post type
+        }
+        $index = $this->indexFor($name, $language);
+        $total = $index->count();
+        if ($total > 0) {
+            $result = $index->search('', new \Fuzor\SearchOptions(limit: $half, offset: random_int(0, max(0, $total - $half)), attributesToRetrieve: ['id']));
+            foreach ($result->hits as $hit) {
+                $ids[] = (int) ($hit['id'] ?? 0);
+            }
+        }
+        return array_values(array_unique(array_filter($ids, static fn(int $id): bool => $id > 0)));
+    }
+
     /** @return array<string, array<string, mixed>> Per index name. */
     public function stats(): array
     {
