@@ -12,12 +12,12 @@
             "source": {
                 "type": "git",
                 "url": "https://github.com/onstage2426/fuzor.git",
-                "reference": "f8f1d5981f795579033040ae54bbb110adcae353"
+                "reference": "36955f9e5e0bc82de62ba04b6a9f020af63c2ddd"
             },
             "dist": {
                 "type": "zip",
-                "url": "https://api.github.com/repos/onstage2426/fuzor/zipball/f8f1d5981f795579033040ae54bbb110adcae353",
-                "reference": "f8f1d5981f795579033040ae54bbb110adcae353",
+                "url": "https://api.github.com/repos/onstage2426/fuzor/zipball/36955f9e5e0bc82de62ba04b6a9f020af63c2ddd",
+                "reference": "36955f9e5e0bc82de62ba04b6a9f020af63c2ddd",
                 "shasum": ""
             },
             "require": {
@@ -27,13 +27,14 @@
                 "php": ">=8.5"
             },
             "require-dev": {
-                "infection/infection": "^0.32.6 || ^0.33.0 || ^0.34.0",
+                "infection/infection": "^0.32.6 || ^0.33.0 || ^0.34.0 || ^0.35.0",
                 "phpbench/phpbench": "^1.5",
                 "phpstan/phpstan": "^2.1",
                 "phpunit/phpunit": "^13.1",
                 "rector/rector": "^2.4",
                 "squizlabs/php_codesniffer": "^4.0"
             },
+            "default-branch": true,
             "type": "library",
             "autoload": {
                 "psr-4": {
@@ -104,14 +105,13 @@
                 "search-as-you-type",
                 "snippet",
                 "sqlite",
-                "stemming",
                 "tokenizer"
             ],
             "support": {
                 "issues": "https://github.com/onstage2426/fuzor/issues",
                 "source": "https://github.com/onstage2426/fuzor"
             },
-            "time": "2026-11-14T23:12:50+00:00"
+            "time": "2026-11-18T01:37:23+00:00"
         }
     ],
     "packages-dev": [
