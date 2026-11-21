@@ -32,7 +32,7 @@ final class Engine
      *
      * @var list<string>
      */
-    private array $features = ['facet_stats', 'filter_groups', 'pending_updates'];
+    private array $features = ['facet_stats', 'filter_groups', 'pending_updates', 'search_codes'];
 
     private const array TYPES = ['products', 'posts'];
 

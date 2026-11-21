@@ -128,13 +128,15 @@ An unknown key is ignored; `problems()` doesn't see requests, so the fixtures co
 | `approximateFacets` | list of fields | facets whose counts (and `facetStats`) were computed over a capped set of the matches, so they are approximate |
 | `truncatedFacets` | list of fields | facets that have more values than they list (`facet_values`) |
 | `warnings` | list of strings | ignored options, undeclared fields: a misconfiguration, not an error |
+| `code` | string | feature `search_codes`, `search()` only: the search couldn't run, and the response is empty for that reason, not because nothing matched: `index_not_built` or `search_failed` (the endpoint's codes, below). Missing when it searched |
 
 **Hit:** `id` (int) and the stored fields `attributes` asks for: text as plain text, numbers as numbers (a whole float may arrive as an int, as JSON has one number type), taxonomy fields as lists of slugs; `labels` (the hit's
 fields that have names (taxonomy fields, `labels`), as names, same shape); `formatted.title` and `formatted.snippet` (safe HTML with the
 matched words in `<mark>`). Fields added by `define()`'s `document` callable (rendered cards) are
 returned as stored.
 
-A search on an index that isn't built returns this shape with no results, never an error.
+A search on an index that isn't built returns this shape with no results, never an error (with
+feature `search_codes`, and its `code`).
 
 ## Methods
 
@@ -265,11 +267,12 @@ in the shape of its contract, so pages cached before a plugin update keep workin
 ## Features
 
 Added after contract 1's first release, newest last. Each: the name `supports()` takes and what it
-adds. Every release has the first three.
+adds; from the fourth on, the plugin version that added it. Every release has the first three.
 
 - `facet_stats`: the request key `facet_stats`, a numeric field's `facetStats` without its value counts. On a whole catalog's price, ~6× cheaper than the facet (Fuzor `352927d`); a narrow match costs the same.
 - `filter_groups`: in a Filter, `'field' => ['all' => [...]]` and the groups `any`, `all` and `not` (Fuzor's `Filter`), from PHP, in tokens and in the browser's `filter[]`. A Filter without them means and costs what it did.
 - `pending_updates`: `status()`'s `pending` and `pending_since`: the content changes an index hasn't taken in yet. The update job runs from WP-cron, which a password-protected or offline site never runs: the index then misses every change until a rebuild.
+- `search_codes` (0.2.0): `search()`'s `code`: an empty response because the index isn't built or the search failed, so a page built from it (an archive, a slider) can stay out of page caches and search engines instead of being kept as an empty page.
 
 ## Fixtures
 

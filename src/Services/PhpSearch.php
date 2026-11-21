@@ -22,7 +22,9 @@ final class PhpSearch
      * $params holds the locked options plus offset and sort; $visitorFilter the visitor's own
      * filter (already parsed), kept apart so SearchRunner can leave its undeclared fields out
      * while an undeclared locked field fails. An index that isn't built, or a failed search,
-     * returns the empty shape.
+     * returns the empty shape with the endpoint's `code` for it (`index_not_built`,
+     * `search_failed`): an empty answer that isn't "nothing found", which a page cache mustn't
+     * keep.
      *
      * @param  array<string, mixed> $params
      * @param  array<string, mixed> $visitorFilter Already parsed (FilterQuery::parse()).
@@ -36,14 +38,14 @@ final class PhpSearch
         $sort    = SortQuery::parse( (array) ($params['sort'] ?? []));
 
         if (!Index::exists($path)) {
-            return SearchRunner::empty($query, $options, $offset);
+            return [...SearchRunner::empty($query, $options, $offset), 'code' => 'index_not_built'];
         }
 
         try {
             return SearchRunner::run($path, $query, $options, $offset, $sort, $visitorFilter);
         } catch (\Throwable $e) {
             error_log('Gaffer Search: the search on index "' . $index . '" failed: ' . $e->getMessage()); // phpcs:ignore WordPress.PHP.DevelopmentFunctions.error_log_error_log
-            return SearchRunner::empty($query, $options, $offset);
+            return [...SearchRunner::empty($query, $options, $offset), 'code' => 'search_failed'];
         }
     }
 
