@@ -261,3 +261,18 @@ writes without WordPress's hooks. The same job fetches a probe file from each fo
 protects over HTTP; one that's served is a `wp gaffer-search status` problem.
 
 `wp gaffer-search describe [<index>]` shows the schema, document count, and file revision.
+
+### Plugin updates
+
+The plugin updates itself from this repository's GitHub releases (full releases only, never a
+prerelease), with WordPress's auto-updates. It asks GitHub about every 12 hours (WP-cron, a
+`wp plugin list`/`status`/`update`, or the Plugins screen once an hour), so a new release reaches
+a site within about 12 hours of its last check, and WordPress's next auto-update run installs it.
+To fetch it now: open **Dashboard → Updates** (it asks again within a minute), or from WP-CLI:
+
+```
+wp option delete hu_state-gaffer-search && wp plugin update gaffer-search
+```
+
+(On a network: `wp site option delete hu_state-gaffer-search`.) After an update, read the
+installed `docs/migration.md` from the version you had.
