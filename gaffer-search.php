@@ -20,6 +20,7 @@ defined("ABSPATH") || exit();
 require_once __DIR__ . "/vendor/autoload.php";
 
 use GafferSearch\Bootstrap;
+use GafferSearch\Support\ReleaseAsset;
 use GafferSearch\WpHubUpdater\Plugin\PluginUpdater;
 
 $gaffer_search_updater = PluginUpdater::build("https://github.com/onstage2426/gaffer-search", __FILE__)
@@ -28,11 +29,13 @@ $gaffer_search_updater = PluginUpdater::build("https://github.com/onstage2426/ga
     ->setReleaseVersionFilter("/^[01]\./", PluginUpdater::RELEASE_FILTER_SKIP_PRERELEASE)
     ->throttleRedundantChecks(hours: 72)
     ->setCooldown(hours: 0)
+    ->setAssetFilter(ReleaseAsset::NAME)
     ->enableAutoUpdates();
 
-// Releases only: a tag's or branch's source zip has no vendor/ (and no generated updater), and
-// installing it would take the site down. A check that finds no release offers nothing.
-add_filter("hu_vcs_update_detection_strategies-gaffer-search", static fn(array $strategies): array => array_intersect_key($strategies, ["latest_release" => true]));
+// Releases only, and only their built zip: a source zip (a tag's, a branch's, or a release's
+// without the asset) has no vendor/ (and no generated updater), and installing it would take
+// the site down. A check that finds no built zip offers nothing.
+add_filter("hu_vcs_update_detection_strategies-gaffer-search", [ReleaseAsset::class, "strategies"]);
 
 $bootstrap = new Bootstrap(__FILE__);
 register_activation_hook(__FILE__, $bootstrap->activate(...));

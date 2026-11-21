@@ -5,6 +5,13 @@ to find the affected code, what to do.
 
 ## Unreleased
 
+### Updates come only as a release's built zip (nothing to change in a theme)
+
+- The updater offers a release only when it has its `gaffer-search.zip`. Before, a release
+  without it (made by hand, or while its upload ran) would have been installed from GitHub's
+  source zip, which has no `vendor/`: every request would have failed until the plugin folder
+  was replaced. Nothing to change.
+
 ## v0.3.0 (2026-11-21)
 
 ### No admin screens: everything is WP-CLI (nothing to change in a theme)
