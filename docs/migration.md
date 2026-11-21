@@ -5,6 +5,8 @@ to find the affected code, what to do.
 
 ## Unreleased
 
+## v0.2.0 (2026-11-21)
+
 ### A search that couldn't run says so (nothing to change in a theme)
 
 - `search()` from PHP adds `code` (`index_not_built`, `search_failed`) to the empty response it
