@@ -43,10 +43,10 @@ final class IndexLifecycleTest extends TestCase
     {
         self::assertSame([self::NAME], $this->service->needsBuild(), 'a new index');
 
-        set_transient('gaffer_search_cron_error_' . self::NAME, ['message' => 'boom', 'time' => time() - 60]);
+        update_option('gaffer_search_error_' . self::NAME, ['message' => 'boom', 'time' => time() - 60]);
         self::assertSame([], $this->service->needsBuild(), 'no build on every request while it fails');
         self::assertSame([self::NAME], $this->service->needsBuild(backOff: false), 'the job itself asks without the back-off');
-        set_transient('gaffer_search_cron_error_' . self::NAME, ['message' => 'boom', 'time' => time() - 2 * HOUR_IN_SECONDS]);
+        update_option('gaffer_search_error_' . self::NAME, ['message' => 'boom', 'time' => time() - 2 * HOUR_IN_SECONDS]);
         self::assertSame([self::NAME], $this->service->needsBuild(), 'tried again an hour later');
 
         $this->service->build(self::NAME);

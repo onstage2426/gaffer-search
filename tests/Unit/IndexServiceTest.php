@@ -13,6 +13,7 @@ use GafferSearch\Services\IndexBusyException;
 use GafferSearch\Services\IndexRegistry;
 use GafferSearch\Services\IndexService;
 use GafferSearch\Services\SettingsService;
+use GafferSearch\Services\State;
 use GafferSearch\Tests\FixtureBuilder;
 use GafferSearch\Tests\TestCase;
 use GafferSearchTestWordPress;
@@ -79,8 +80,8 @@ final class IndexServiceTest extends TestCase
         self::assertFalse(get_option('gaffer_search_built_signatures'), 'and removed');
         self::assertSame(['signature' => 'x', 'version' => ''], get_option('gaffer_search_built_other'));
 
-        (new \ReflectionMethod($service, 'recordSignature'))->invoke($service, 'products', 'new');
-        self::assertSame(['signature' => 'new', 'version' => ''], get_option('gaffer_search_built_products'));
+        State::recordBuilt('products', 'new', 'v2', 1.5, 2.25);
+        self::assertSame(['signature' => 'new', 'version' => 'v2', 'started' => '1.500000', 'duration' => '2.2500'], get_option('gaffer_search_built_products'));
         self::assertFalse(GafferSearchTestWordPress::$autoload['gaffer_search_built_products'] ?? true, 'never in alloptions');
     }
 

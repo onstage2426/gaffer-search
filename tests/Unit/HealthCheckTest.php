@@ -12,6 +12,7 @@ use GafferSearch\Services\HealthCheck;
 use GafferSearch\Services\IndexRegistry;
 use GafferSearch\Services\IndexService;
 use GafferSearch\Services\SettingsService;
+use GafferSearch\Services\State;
 use GafferSearch\Tests\TestCase;
 use GafferSearch\Watch;
 
@@ -28,7 +29,7 @@ final class HealthCheckTest extends TestCase
         $service = new SampledIndexService(new SettingsService(), new IndexRegistry(), $queue);
         $check   = new HealthCheck($service, new IndexRegistry(), new SettingsService());
         try {
-            self::assertNull(HealthCheck::drift(self::NAME), 'nothing before the first check');
+            self::assertNull(State::drift(self::NAME), 'nothing before the first check');
 
             $service->build(self::NAME);
             self::assertSame(0, $check->checkDrift(self::NAME)['differing'], 'in step with its builder');
@@ -40,7 +41,7 @@ final class HealthCheckTest extends TestCase
             self::assertSame(1, $result['differing']);
             self::assertSame(3, $result['checked']);
             self::assertSame([['id' => 1, 'index' => self::NAME, 'post' => 2]], $queue->rows, 'put in the update log, as verify --fix does');
-            self::assertSame(1, HealthCheck::drift(self::NAME)['differing'] ?? null);
+            self::assertSame(1, State::drift(self::NAME)['differing'] ?? null);
         } finally {
             $service->deleteIndex(self::NAME);
         }
@@ -48,7 +49,7 @@ final class HealthCheckTest extends TestCase
 
     public function test_nothing_is_served_before_a_check(): void
     {
-        self::assertNull(HealthCheck::served());
+        self::assertNull(State::served());
     }
 }
 

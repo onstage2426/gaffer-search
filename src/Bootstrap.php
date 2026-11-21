@@ -11,6 +11,7 @@ use GafferSearch\Services\IndexRegistry;
 use GafferSearch\Services\IndexService;
 use GafferSearch\Services\SearchConfig;
 use GafferSearch\Services\SettingsService;
+use GafferSearch\Services\State;
 use GafferSearch\Services\UpdateQueue;
 use GafferSearch\Support\ConfigLocation;
 use GafferSearch\Support\ProtectedDir;
@@ -257,7 +258,7 @@ class Bootstrap
      */
     private function runRequestedBuild(string $name): void
     {
-        $requested = ChangeTracker::requested($name);
+        $requested = State::requested($name);
         if ($requested !== null && $this->index->satisfiedBy($name, $requested)) {
             return;
         }
@@ -290,13 +291,13 @@ class Bootstrap
         }
         try {
             $this->index->build($name);
-            delete_transient('gaffer_search_cron_error_' . $name);
+            State::clearError($name);
         } catch (IndexBusyException) {
             if ($retry !== null) {
                 $retry();
             }
         } catch (\Throwable $e) {
-            set_transient('gaffer_search_cron_error_' . $name, ['message' => $e->getMessage(), 'time' => time()], WEEK_IN_SECONDS);
+            State::setError($name, $e->getMessage());
             error_log('Gaffer Search: scheduled rebuild of "' . $name . '" failed: ' . $e->getMessage()); // phpcs:ignore WordPress.PHP.DevelopmentFunctions.error_log_error_log
         }
     }
@@ -316,7 +317,7 @@ class Bootstrap
             } catch (IndexBusyException) {
                 ChangeTracker::scheduleUpdate(30);
             } catch (\Throwable $e) {
-                set_transient('gaffer_search_cron_error_' . $name, ['message' => $e->getMessage(), 'time' => time()], WEEK_IN_SECONDS);
+                State::setError($name, $e->getMessage());
                 error_log('Gaffer Search: update of "' . $name . '" failed: ' . $e->getMessage()); // phpcs:ignore WordPress.PHP.DevelopmentFunctions.error_log_error_log
             }
         }

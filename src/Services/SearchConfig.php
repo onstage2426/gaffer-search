@@ -95,7 +95,6 @@ final class SearchConfig
         if (function_exists('opcache_invalidate')) {
             @opcache_invalidate($path, true); // phpcs:ignore WordPress.PHP.NoSilencedErrors.Discouraged -- restricted by opcache.restrict_api: nothing to do
         }
-        delete_transient('gaffer_search_config_write_error');
         return true;
     }
 
@@ -132,6 +131,5 @@ final class SearchConfig
     private function fail(string $reason): void
     {
         error_log("Gaffer Search: failed to write the endpoint config: {$reason}."); // phpcs:ignore WordPress.PHP.DevelopmentFunctions.error_log_error_log
-        set_transient('gaffer_search_config_write_error', $reason, HOUR_IN_SECONDS);
     }
 }

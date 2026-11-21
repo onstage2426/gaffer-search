@@ -7,12 +7,12 @@ namespace GafferSearch;
 use GafferSearch\Builders\ContentIndexBuilder;
 use GafferSearch\Builders\IndexBuilderInterface;
 use GafferSearch\Builders\ProductIndexBuilder;
-use GafferSearch\Services\HealthCheck;
 use GafferSearch\Services\IndexRegistry;
 use GafferSearch\Services\IndexService;
 use GafferSearch\Services\Locks;
 use GafferSearch\Services\PhpSearch;
 use GafferSearch\Services\SettingsService;
+use GafferSearch\Services\State;
 use GafferSearch\Services\Tokens;
 use GafferSearch\Support\FilterQuery;
 
@@ -165,17 +165,17 @@ final class Engine
         $service = $this->service();
         $stats   = $service->stats();
         $status  = [];
-        $served  = HealthCheck::served();
+        $served  = State::served();
         foreach ((new IndexRegistry())->names() as $name) {
-            $drift         = HealthCheck::drift($name);
-            $error         = get_transient('gaffer_search_cron_error_' . $name);
+            $drift         = State::drift($name);
+            $error         = State::error($name);
             $pending       = $service->pendingUpdates($name);
             $status[$name] = [
                 'built'     => (bool) ($stats[$name]['exists'] ?? false),
                 'documents' => (int) ($stats[$name]['total_documents'] ?? 0),
                 'version'   => $service->builtVersion($name),
                 'building'  => $service->isBuilding($name),
-                'error'     => is_array($error) && is_string($error['message'] ?? null) ? $error['message'] : null,
+                'error'     => $error['message'] ?? null,
                 'pending'       => $pending['count'],
                 'pending_since' => $pending['since'],
                 'drift'         => $drift !== null ? $drift['differing'] : null,

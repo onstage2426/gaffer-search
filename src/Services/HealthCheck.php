@@ -17,7 +17,7 @@ use GafferSearch\Support\ConfigLocation;
  *    configs), fetched over HTTP like a visitor. The deny `.htaccess` only covers
  *    Apache and LiteSpeed: on nginx without its rule an index (hidden documents too) downloads.
  *
- * Results are options (not autoloaded), read by Engine::status() (feature `health_checks`).
+ * Results are kept in State, read by Engine::status() (feature `health_checks`).
  *
  * @internal
  */
@@ -27,9 +27,6 @@ final class HealthCheck
 
     /** How many documents per index a check compares. */
     public const int SAMPLE = 60;
-
-    private const string DRIFT_OPTION  = 'gaffer_search_drift_';
-    private const string SERVED_OPTION = 'gaffer_search_served';
 
     public function __construct(
         private readonly IndexService $index,
@@ -71,7 +68,7 @@ final class HealthCheck
             ChangeTracker::scheduleUpdate();
         }
         $result = ['differing' => count($differing), 'checked' => count($ids), 'time' => time()];
-        update_option(self::DRIFT_OPTION . $name, $result, false);
+        State::setDrift($name, $result);
         return $result;
     }
 
@@ -109,34 +106,8 @@ final class HealthCheck
             }
         }
         $result = $checked === 0 ? null : $served;
-        update_option(self::SERVED_OPTION, ['served' => $result, 'time' => time()], false);
+        State::setServed($result);
         return $result;
-    }
-
-    /**
-     * The last sample check of an index: how many documents differed from the database (they
-     * were put in the update log), how many were compared, when; null before the first one.
-     *
-     * @return array{differing: int, checked: int, time: int}|null
-     */
-    public static function drift(string $name): ?array
-    {
-        $value = get_option(self::DRIFT_OPTION . $name);
-        return is_array($value) && isset($value['differing'], $value['checked'], $value['time'])
-            ? ['differing' => (int) $value['differing'], 'checked' => (int) $value['checked'], 'time' => (int) $value['time']]
-            : null;
-    }
-
-    /**
-     * The folders the last check could fetch a file from (relative to the content folder); an
-     * empty list when none; null when nothing was checked yet or could be.
-     *
-     * @return list<string>|null
-     */
-    public static function served(): ?array
-    {
-        $value = get_option(self::SERVED_OPTION);
-        return is_array($value) && is_array($value['served'] ?? null) ? array_values(array_map(strval(...), $value['served'])) : null;
     }
 
     /** Remove the job and its results on this site (deactivation leaves the results; uninstall). */

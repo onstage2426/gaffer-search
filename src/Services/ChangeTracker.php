@@ -44,8 +44,6 @@ final class ChangeTracker
     public const string UPDATE_HOOK  = 'gaffer_search_apply_updates';
     /** A build a request found missing (an unbuilt index, a changed builder): asked again before it runs. */
     public const string ENSURE_HOOK  = 'gaffer_search_ensure_built';
-    /** When the last full rebuild was requested (a microtime), per index; not autoloaded. */
-    public const string REQUESTED_OPTION = 'gaffer_search_rebuild_requested_';
     public const int DELAY_SECONDS   = 60;
     public const int UPDATE_DELAY    = 5;
 
@@ -111,18 +109,11 @@ final class ChangeTracker
     public static function schedule(string $name, int $delay = self::DELAY_SECONDS, bool $retry = false): void
     {
         if (!$retry) {
-            update_option(self::REQUESTED_OPTION . $name, sprintf('%.6F', microtime(true)), false);
+            State::request($name);
         }
         if (wp_next_scheduled(self::REBUILD_HOOK, [$name]) === false) {
             wp_schedule_single_event(time() + max(0, $delay), self::REBUILD_HOOK, [$name]);
         }
-    }
-
-    /** When the last full rebuild of $name was asked for; null: never (or before this was noted). */
-    public static function requested(string $name): ?float
-    {
-        $time = get_option(self::REQUESTED_OPTION . $name);
-        return is_numeric($time) ? (float) $time : null;
     }
 
     /**

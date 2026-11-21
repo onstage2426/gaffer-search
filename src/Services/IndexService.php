@@ -62,15 +62,17 @@ class IndexService
                             $counts[$n] += $this->buildOne($n, $language);
                         }
                     } finally {
-                        // Set by buildOne() for the whole build (all languages), so isBuilding()
+                        // Beaten by buildOne() for the whole build (all languages), so building()
                         // has no gap between two languages' files.
-                        delete_transient("gaffer_search_build_progress_{$n}");
+                        State::stopBuilding($n);
                     }
-                    set_transient("gaffer_search_build_duration_{$n}", round(microtime(true) - $start, 4), MONTH_IN_SECONDS);
-                    $this->recordSignature($n, $this->signature($n), $started);
+                    $signature = $this->signature($n);
+                    if ($signature !== null) {
+                        State::recordBuilt($n, $signature, $this->registry->get($n)->version ?? '', $started, microtime(true) - $start);
+                    }
                     $this->writeState($n, ['position' => $position, 'log' => $this->queue->id()]);
                     // A full build from WP-CLI clears an earlier failure too.
-                    delete_transient('gaffer_search_cron_error_' . $n);
+                    State::clearError($n);
                 } finally {
                     $this->releaseLocks($locks);
                 }
@@ -364,9 +366,7 @@ class IndexService
             $this->removeIndexFiles($this->pathFor($name, $language));
             unset($this->indexes["{$name}|{$language}"]);
         }
-        delete_transient("gaffer_search_build_duration_{$name}");
-        delete_transient("gaffer_search_synonym_skipped_{$name}");
-        $this->recordSignature($name, null);
+        State::forget($name);
         @unlink($this->statePath($name)); // phpcs:ignore WordPress.PHP.NoSilencedErrors.Discouraged
     }
 
@@ -405,8 +405,8 @@ class IndexService
     /** The last scheduled build or update of the index failed less than an hour ago. */
     private function failedRecently(string $name): bool
     {
-        $error = get_transient('gaffer_search_cron_error_' . $name);
-        return is_array($error) && (int) ($error['time'] ?? 0) > time() - HOUR_IN_SECONDS;
+        $error = State::error($name);
+        return $error !== null && $error['time'] > time() - HOUR_IN_SECONDS;
     }
 
     /**
@@ -415,7 +415,7 @@ class IndexService
      */
     public function satisfiedBy(string $name, float $requested): bool
     {
-        $started = self::built($name)['started'] ?? null;
+        $started = State::built($name)['started'] ?? null;
         return $started !== null && (float) $started > $requested && $this->isBuilt($name);
     }
 
@@ -440,7 +440,7 @@ class IndexService
 
     private function changed(string $name): bool
     {
-        $recorded = self::built($name)['signature'] ?? null;
+        $recorded = State::built($name)['signature'] ?? null;
         return $recorded !== null ? $recorded !== $this->signature($name) : $this->isBuilt($name);
     }
 
@@ -498,55 +498,6 @@ class IndexService
             'tag'       => get_option('tag_base'),
             'products'  => get_option('woocommerce_permalinks'),
         ];
-    }
-
-    /**
-     * What an index was last built from: one option per index, not autoloaded. Never one array
-     * for all indexes in an autoloaded option: with a persistent object cache (Redis) a build
-     * holds the `alloptions` it loaded minutes earlier and writes it back whole, so another
-     * process's newer value was lost and the index rebuilt over and over (a live
-     * multisite, 2026-11-04). Builds of one index are serialized by its build lock.
-     */
-    private const string BUILT_OPTION = 'gaffer_search_built_';
-
-    /** @return array{signature?: string, version?: string, started?: string} started: when the build began (microtime) */
-    private static function built(string $name): array
-    {
-        self::migrateBuiltOptions();
-        $built = get_option(self::BUILT_OPTION . $name, []);
-        return is_array($built) ? array_filter($built, is_string(...)) : [];
-    }
-
-    private function recordSignature(string $name, ?string $signature, ?float $started = null): void
-    {
-        self::migrateBuiltOptions();
-        if ($signature === null) {
-            delete_option(self::BUILT_OPTION . $name);
-            return;
-        }
-        $definition = $this->registry->get($name);
-        $built      = ['signature' => $signature, 'version' => $definition !== null ? $definition->version : ''];
-        if ($started !== null) {
-            $built['started'] = sprintf('%.6F', $started);
-        }
-        update_option(self::BUILT_OPTION . $name, $built, false);
-    }
-
-    /** The arrays of before 2026-11-05 (gaffer_search_built_signatures/_versions) as one option per index, once. */
-    private static function migrateBuiltOptions(): void
-    {
-        $signatures = get_option('gaffer_search_built_signatures');
-        $versions   = get_option('gaffer_search_built_versions');
-        if ($signatures === false && $versions === false) {
-            return;
-        }
-        foreach (is_array($signatures) ? $signatures : [] as $name => $signature) {
-            if (get_option(self::BUILT_OPTION . $name) === false) {
-                add_option(self::BUILT_OPTION . $name, ['signature' => (string) $signature, 'version' => (string) (( (array) $versions)[$name] ?? '')], '', false);
-            }
-        }
-        delete_option('gaffer_search_built_signatures');
-        delete_option('gaffer_search_built_versions');
     }
 
     /**
@@ -772,14 +723,14 @@ class IndexService
                 }
             }
 
-            $duration = get_transient("gaffer_search_build_duration_{$name}");
+            $duration = State::built($name)['duration'] ?? null;
 
             $result[$name] = [
                 'exists'              => $exists,
                 'total_documents'     => $indexCount,
                 'languages'           => $languages,
                 'last_modified'       => $lastModified,
-                'build_duration'      => $duration !== false ? $this->formatDuration( (float) $duration) : null,
+                'build_duration'      => $duration !== null ? $this->formatDuration( (float) $duration) : null,
                 'schema'              => $schema,
                 'schema_version'      => $schemaVersion,
             ];
@@ -1010,13 +961,13 @@ class IndexService
     /** The definition `version` the index was last built from, null when unknown. */
     public function builtVersion(string $name): ?string
     {
-        return self::built($name)['version'] ?? null;
+        return State::built($name)['version'] ?? null;
     }
 
-    /** Whether a build of the index is running (its progress is reported while it does). */
+    /** Whether a build of the index is running (its heartbeat is recent). */
     public function isBuilding(string $name): bool
     {
-        return get_transient("gaffer_search_build_progress_{$name}") !== false;
+        return State::building($name);
     }
 
     /** @param list<resource> $locks */
@@ -1071,7 +1022,7 @@ class IndexService
             $new->insert($this->generateDocs($name, $context), progress: function (int $done) use ($name, $chunkSize, &$count): void {
                 $count = $done;
                 if ($done % $chunkSize === 0) {
-                    set_transient("gaffer_search_build_progress_{$name}", $done, 300);
+                    State::heartbeat($name, $done);
                 }
             });
 
@@ -1087,20 +1038,17 @@ class IndexService
         }
 
         // Removed by build() when every language is done.
-        set_transient("gaffer_search_build_progress_{$name}", 0, 300);
+        State::heartbeat($name, 0);
         // rebuild() builds into a temp file and swaps it in atomically — also for the very
         // first build, so a reader never sees a half-built index and a killed build leaves
         // only temp files (which the next build sweeps).
         $index = Index::rebuild($path, $populate, schema: $schema);
 
         if ($skipped !== []) {
-            set_transient("gaffer_search_synonym_skipped_{$name}", $skipped, MONTH_IN_SECONDS);
             error_log( // phpcs:ignore WordPress.PHP.DevelopmentFunctions.error_log_error_log
                 "Gaffer Search: index '{$name}' skipped " . count($skipped)
                 . ' synonym term(s) (multi-word terms are unsupported): ' . implode(', ', $skipped),
             );
-        } else {
-            delete_transient("gaffer_search_synonym_skipped_{$name}");
         }
 
         $this->indexes["{$name}|{$language}"] = $index;
