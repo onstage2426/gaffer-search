@@ -89,6 +89,9 @@ response up to 5 minutes after the index changed.
   Indexes`, and where a host doesn't allow it every search would fail with a 500. Check after:
   `curl -sI '<endpoint>?token=…'` shows one `Cache-Control`, and Gaffer's `doctor --wp` no longer
   warns.
+- **No `ETag` arrives behind WP Rocket:** its block in the root `.htaccess` has `Header unset
+  ETag` (for static files), which removes the endpoint's too. Conditional requests still get a
+  `304` through `Last-Modified`; nothing to change.
 - Tokens with `ttl` are `private`: never in a shared cache.
 
 ### Languages (WPML)
@@ -218,7 +221,10 @@ In production, set `define('DISABLE_WP_CRON', true);` and run WordPress's cron f
 The plugin's daily health check (`gaffer_search_health_check`: a sample of each index compared
 with the database, and the protected folders fetched like a visitor, see "Verifying an index")
 is a WP-cron job too: with `DISABLE_WP_CRON`, run WordPress's due jobs from the system cron as
-well (`wp cron event run --due-now`), or it never runs.
+well (`wp cron event run --due-now`), or it never runs. The same job also re-syncs the rebuild schedules and puts back a
+deleted deny file, which otherwise only happens when someone opens wp-admin. Gaffer's
+`php gaffer health` (silent when all is well, exit 1 otherwise) in the server's crontab with
+`MAILTO` says when the check stops running.
 
 Without either, nothing applies the logged changes: WP-cron needs traffic and a loopback request
 to `wp-cron.php`, which a password-protected (HTTP auth) or firewalled site refuses, and WP-CLI

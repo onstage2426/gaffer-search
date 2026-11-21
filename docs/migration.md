@@ -5,6 +5,11 @@ to find the affected code, what to do.
 
 ## Unreleased
 
+### The daily check re-syncs schedules and deny files (nothing to change in a theme)
+
+- A changed `rebuild` schedule and a deleted deny `.htaccess` in the index folder were only
+  fixed when someone opened wp-admin; the daily health check does both now.
+
 ### Updates come only as a release's built zip (nothing to change in a theme)
 
 - The updater offers a release only when it has its `gaffer-search.zip`. Before, a release
