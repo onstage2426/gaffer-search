@@ -74,7 +74,20 @@ response up to 5 minutes after the index changed.
   string. Without it every request reaches PHP (still correct, just uncached).
 - **A second `Cache-Control` header** (`max-age=0`, say) comes from the server, not the plugin:
   an `.htaccess` `Header set`/`ExpiresByType` rule, or a caching plugin's rules for PHP files.
-  Exclude the endpoints from it, or the browser and CDN see two policies.
+  Exclude the endpoints from it, or the browser and CDN see two policies (and keep nothing).
+  WP Rocket's block in the root `.htaccess` does it (`ExpiresByType application/json`); outside
+  its `# BEGIN WP Rocket` markers (WP Rocket rewrites what's between them), on Apache 2.4:
+
+  ```apache
+  <If "%{REQUEST_URI} =~ m#/wp-content/plugins/gaffer-search/endpoints/#">
+      ExpiresActive Off
+  </If>
+  ```
+
+  The plugin doesn't ship this: `ExpiresActive` in an `.htaccess` needs `AllowOverride
+  Indexes`, and where a host doesn't allow it every search would fail with a 500. Check after:
+  `curl -sI '<endpoint>?token=…'` shows one `Cache-Control`, and Gaffer's `doctor --wp` no longer
+  warns.
 - Tokens with `ttl` are `private`: never in a shared cache.
 
 ### Languages (WPML)
