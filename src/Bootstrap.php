@@ -207,7 +207,12 @@ class Bootstrap
         add_action(ChangeTracker::REBUILD_HOOK, fn($name) => $this->runRequestedBuild( (string) $name));
         add_action(ChangeTracker::ENSURE_HOOK, fn($name) => $this->runEnsureBuild( (string) $name));
         add_action(ChangeTracker::UPDATE_HOOK, fn() => $this->runScheduledUpdates());
-        add_action(HealthCheck::HOOK, fn() => (new HealthCheck($this->index, $this->verifier(), $this->registry, $this->settings))->run());
+        add_action(HealthCheck::HOOK, function (): void {
+            // What admin_init also does, for a site nobody logs into (WP-CLI and cron only).
+            $this->ensureCronSchedules();
+            $this->ensureProtectedIndexDir();
+            (new HealthCheck($this->index, $this->verifier(), $this->registry, $this->settings))->run();
+        });
         if ($this->registry->names() !== []) {
             HealthCheck::schedule();
         }
@@ -231,11 +236,7 @@ class Bootstrap
         add_action('gaffer_search_indexes_built', fn() => $this->writeSearchConfig());
         add_action('admin_init', fn() => $this->ensureCronSchedules());
         // A folder made before the protection files existed, or one they were deleted from.
-        add_action('admin_init', function (): void {
-            if (is_dir( (string) $this->settings->get('index_dir'))) {
-                ProtectedDir::ensure( (string) $this->settings->get('index_dir'));
-            }
-        });
+        add_action('admin_init', fn() => $this->ensureProtectedIndexDir());
     }
 
     /**
@@ -323,6 +324,13 @@ class Bootstrap
             }
         }
         (new UpdateQueue())->prune();
+    }
+
+    private function ensureProtectedIndexDir(): void
+    {
+        if (is_dir( (string) $this->settings->get('index_dir'))) {
+            ProtectedDir::ensure( (string) $this->settings->get('index_dir'));
+        }
     }
 
     private function ensureCronSchedules(): void
