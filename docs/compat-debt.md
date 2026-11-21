@@ -14,6 +14,16 @@ that PHP 8.5/8.6, WordPress 7.x or WooCommerce 11.x deprecates.
 
 Start the next audit here; remove an item when it's done or decided.
 
+- **The updater and GitHub** (2026-11-21, break-first audit). Releases come from GitHub's API
+  without a token: 60 requests an hour per IP, about two checks a day per site; a 403/429 stores a
+  backoff until the reset (`hu_ratelimit-gaffer-search`), so several sites on one server stay far
+  below it. The updater offers only a release's `gaffer-search.zip` (`Support\ReleaseAsset`):
+  its fallback to the source zipball (no `vendor/`) would fatal every request, and a manual
+  `wp plugin update` has no fatal-error rollback. The release workflow publishes only after the
+  upload (draft first): keep it that way.
+- **Work that needs wp-admin** (2026-11-21): none left. The rebuild schedules and the index
+  folder's deny files are synced on `admin_init` and by the daily health job.
+
 - **Secret rotation has no grace period** (2026-11-15, deferred). Rotating the token secret
   makes every cached page's searches fail (`invalid_token`) until the page cache is cleared.
   Verifying against the previous secret for a day would cost a second option and a second
