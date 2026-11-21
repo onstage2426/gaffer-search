@@ -1,0 +1,53 @@
+on:
+  push:
+    tags: ["v*"]
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    steps:
+      - uses: actions/checkout@v6
+
+      - uses: shivammathur/setup-php@v2
+        with:
+          php-version: "8.5"
+
+      - name: Install PHP dependencies
+        run: composer install --prefer-dist --no-progress
+
+      - name: Prefix namespace
+        run: vendor/bin/wp-hub-updater GafferSearch src/WpHubUpdater
+
+      - name: Stamp version from tag
+        run: |
+          sed -i "s/^ \* Version:.*/ * Version: ${GITHUB_REF_NAME#v}/" gaffer-search.php
+
+      - name: Remove dev dependencies
+        run: composer install --no-dev --optimize-autoloader
+
+      - uses: oven-sh/setup-bun@v2
+        with:
+          bun-version: latest
+
+      - name: Install JS dependencies and build assets
+        run: bun install && bun run build
+
+      - name: Create plugin ZIP
+        run: |
+          mkdir /tmp/gaffer-search
+          rsync -a --exclude-from='.deployignore' . /tmp/gaffer-search/
+          cd /tmp && zip -r "$GITHUB_WORKSPACE/gaffer-search.zip" gaffer-search
+
+      - name: Create draft release and upload ZIP
+        id: draft
+        uses: softprops/action-gh-release@v3
+        with:
+          draft: true
+          files: gaffer-search.zip
+
+      - name: Publish release
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: gh release edit "$GITHUB_REF_NAME" --draft=false

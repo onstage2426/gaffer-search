@@ -1,0 +1,68 @@
+<?xml version="1.0"?>
+<ruleset name="Gaffer Search">
+    <file>src/</file>
+    <exclude-pattern>*/vendor/*</exclude-pattern>
+    <exclude-pattern>*/src/WpHubUpdater/*</exclude-pattern>
+
+    <arg name="basepath" value="."/>
+    <arg name="colors"/>
+    <arg value="sp"/>
+    <arg name="extensions" value="php"/>
+
+    <config name="minimum_supported_wp_version" value="6.0"/>
+
+    <rule ref="WordPress">
+        <!-- PSR-4 layout: PascalCase files, camelCase methods/vars -->
+        <exclude name="WordPress.Files.FileName"/>
+        <exclude name="WordPress.NamingConventions.ValidFunctionName"/>
+        <exclude name="WordPress.NamingConventions.ValidVariableName"/>
+
+        <!-- Formatting: codebase is PSR-12, not WordPress style -->
+        <exclude name="Generic.WhiteSpace.DisallowSpaceIndent"/>
+        <exclude name="Generic.Classes.OpeningBraceSameLine"/>
+        <exclude name="Generic.Functions.OpeningFunctionBraceKernighanRitchie"/>
+        <exclude name="Generic.Formatting.MultipleStatementAlignment"/>
+        <exclude name="Generic.Formatting.SpaceAfterCast"/>
+        <exclude name="Generic.WhiteSpace.ArbitraryParenthesesSpacing"/>
+        <exclude name="PEAR.Functions.FunctionCallSignature"/>
+        <exclude name="PSR2.Classes.ClassDeclaration"/>
+        <exclude name="Squiz.ControlStructures.ControlSignature"/>
+        <exclude name="Squiz.Functions.FunctionDeclarationArgumentSpacing"/>
+        <exclude name="NormalizedArrays.Arrays.ArrayBraceSpacing"/>
+        <exclude name="WordPress.Arrays.ArrayDeclarationSpacing"/>
+        <exclude name="WordPress.Arrays.ArrayKeySpacingRestrictions"/>
+        <exclude name="WordPress.Arrays.MultipleStatementAlignment"/>
+        <exclude name="WordPress.PHP.YodaConditions"/>
+        <exclude name="WordPress.WhiteSpace.ControlStructureSpacing"/>
+        <exclude name="WordPress.WhiteSpace.OperatorSpacing"/>
+
+        <!-- EmptyCatchComment already enforces documented empty catches; DetectedCatch is redundant -->
+        <exclude name="Generic.CodeAnalysis.EmptyStatement.DetectedCatch"/>
+
+        <!-- Hook names intentionally use fuzor/index/{name}/x, not underscores (see CLAUDE.md) -->
+        <exclude name="WordPress.NamingConventions.ValidHookName"/>
+
+        <!-- Index .db files are internal, not user uploads — no need for the WP_Filesystem abstraction -->
+        <exclude name="WordPress.WP.AlternativeFunctions.unlink_unlink"/>
+
+        <!-- Modern PHP features used intentionally -->
+        <exclude name="Universal.Arrays.DisallowShortArraySyntax"/>
+        <exclude name="Universal.Operators.DisallowShortTernary"/>
+        <exclude name="Universal.Operators.DisallowStandalonePostIncrementDecrement"/>
+        <exclude name="Universal.NamingConventions.NoReservedKeywordParameterNames"/>
+
+        <!-- Modern PHP type declarations make inline doc comments redundant -->
+        <exclude name="Squiz.Commenting.FileComment"/>
+        <exclude name="Squiz.Commenting.ClassComment"/>
+        <exclude name="Squiz.Commenting.FunctionComment"/>
+        <exclude name="Squiz.Commenting.VariableComment"/>
+        <exclude name="Generic.Commenting.DocComment"/>
+    </rule>
+
+    <!-- Enforce 4-space indentation explicitly -->
+    <rule ref="Generic.WhiteSpace.ScopeIndent">
+        <properties>
+            <property name="indent" value="4"/>
+        </properties>
+    </rule>
+</ruleset>

@@ -1,0 +1,26 @@
+# Contract 1: apply_filters('gaffer_search_engine', null, 1)
+define(array $indexes): void
+endpoint(): string
+problems(array $indexes): array
+search(string $index, array $request): array
+status(): array
+supports(string $feature): bool
+token(string $index, array $request): string
+
+# Search response (search(), the endpoint)
+query, total, offset, limit, results, facets, facetStats, labels, exhaustive, approximateFacets, truncatedFacets, warnings, time
+
+# Endpoint error codes
+config_missing, index_missing, index_not_built, index_unknown, invalid_token, language_unknown, search_failed, token_expired, token_required
+
+# WP-CLI
+wp gaffer-search describe
+wp gaffer-search rebuild
+wp gaffer-search status
+wp gaffer-search update
+wp gaffer-search verify
+
+# wp-config.php constants and the server environment
+GAFFER_SEARCH_CONFIG_DIR
+GAFFER_SEARCH_INDEX_DIR
+GAFFER_SEARCH_SNAPSHOT_DIR

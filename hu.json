@@ -1,0 +1,8 @@
+{
+  "requires_wp":  "6.0",
+  "requires_php": "8.5",
+  "sections": {
+    "installation": "<p>Upload the <code>gaffer-search</code> folder to <code>wp-content/plugins/</code> and activate it. The theme defines its indexes in <code>config/search.php</code> through <a href=\"https://github.com/onstage2426/gaffer\">Gaffer</a>; the plugin builds them in the background. It writes its endpoint config to <code>wp-content/gaffer-search/</code>, so that folder must be writable by PHP.</p>",
+    "faq": "<p><strong>Does it work with multisite?</strong> Yes: every site of a network has its own indexes, secrets and endpoint config.</p><p><strong>Where are the release notes?</strong> On the GitHub release for each version, and in <code>docs/migration.md</code> (shipped with the plugin) for what a site changes after an update.</p>"
+  }
+}

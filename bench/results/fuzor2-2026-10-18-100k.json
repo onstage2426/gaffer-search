@@ -1,0 +1,113 @@
+{
+    "products": 100000,
+    "php": "8.5.11",
+    "date": "2026-10-18T15:29:36+00:00",
+    "runs": 15,
+    "build": {
+        "seconds": 155.61,
+        "file_mb": 563,
+        "peak_memory_mb": 130
+    },
+    "requests": {
+        "archive: page 1, no facets": {
+            "median_ms": 3.02,
+            "p95_ms": 4.99,
+            "total": 93160,
+            "exhaustive": true,
+            "top_hit": "FZ-100000 Klassieke pump mouwen rug"
+        },
+        "archive: page 1, 5 facets": {
+            "median_ms": 161.92,
+            "p95_ms": 170.13,
+            "total": 93160,
+            "exhaustive": true,
+            "top_hit": "FZ-100000 Klassieke pump mouwen rug"
+        },
+        "archive: category, 5 facets": {
+            "median_ms": 83.53,
+            "p95_ms": 84.89,
+            "total": 4710,
+            "exhaustive": true,
+            "top_hit": "FZ-99991 Romantische jumpsuit leer hals"
+        },
+        "archive: category + 2 filters, 5 facets": {
+            "median_ms": 134.07,
+            "p95_ms": 135.16,
+            "total": 451,
+            "exhaustive": true,
+            "top_hit": "FZ-99928 Strakke jas katoen bruiloft"
+        },
+        "archive: sorted by price": {
+            "median_ms": 167.61,
+            "p95_ms": 169.77,
+            "total": 93160,
+            "exhaustive": true,
+            "top_hit": "FZ-30529 Witte oorbel taille bruiloft"
+        },
+        "archive: sorted by name": {
+            "median_ms": 3.31,
+            "p95_ms": 3.53,
+            "total": 93160,
+            "exhaustive": true,
+            "top_hit": "FZ-05739 Boheemse armband avond het"
+        },
+        "archive: deep page (offset 9,000)": {
+            "median_ms": 173.28,
+            "p95_ms": 179.04,
+            "total": 93160,
+            "exhaustive": true,
+            "top_hit": "FZ-90301 Rode tiara kant een"
+        },
+        "search: \"jurk\", 3 facets": {
+            "median_ms": 49.44,
+            "p95_ms": 50.55,
+            "total": 490,
+            "exhaustive": false,
+            "top_hit": "FZ-21037 Lange jurk hals taille"
+        },
+        "search: as you type \"ju\"": {
+            "median_ms": 4.71,
+            "p95_ms": 5.1,
+            "total": 488,
+            "exhaustive": false,
+            "top_hit": "FZ-54523 Moderne jumpsuit mouwen en"
+        },
+        "search: \"rode lange jurk\"": {
+            "median_ms": 25.45,
+            "p95_ms": 26.18,
+            "total": 506,
+            "exhaustive": false,
+            "top_hit": "FZ-07290 Rode bolero fluweel Italiaans"
+        },
+        "search: typo \"jruk\"": {
+            "median_ms": 0.55,
+            "p95_ms": 0.6,
+            "total": 0,
+            "exhaustive": true,
+            "top_hit": null
+        },
+        "search: rare word": {
+            "median_ms": 2.38,
+            "p95_ms": 2.97,
+            "total": 100,
+            "exhaustive": true,
+            "top_hit": "FZ-68793 Klassieke schoen knopen leer"
+        },
+        "search: SKU": {
+            "median_ms": 3.19,
+            "p95_ms": 3.35,
+            "total": 501,
+            "exhaustive": false,
+            "top_hit": "FZ-04217 Korte stropdas bruiloft leer"
+        },
+        "facet search: brand \"st\"": {
+            "median_ms": 27.3,
+            "p95_ms": 29.32
+        }
+    },
+    "updates": {
+        "upsert 1": 11.5,
+        "upsert 100": 136.8,
+        "upsert 1000": 1118.3
+    }
+}

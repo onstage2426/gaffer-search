@@ -1,0 +1,61 @@
+{
+    "name": "onstage2426/gaffer-search",
+    "type": "wordpress-plugin",
+    "description": "",
+    "keywords": [],
+    "homepage": "https://github.com/onstage2426/gaffer-search",
+    "license": "MIT",
+    "authors": [
+        {
+            "name": "Onstage2426",
+            "email": "70956213+Onstage2426@users.noreply.github.com",
+            "role": "Developer"
+        }
+    ],
+    "repositories": [
+        {
+            "type": "vcs",
+            "url": "https://github.com/onstage2426/fuzor"
+        }
+    ],
+    "require": {
+        "php": ">=8.5",
+        "onstage2426/fuzor": "^2.0@dev"
+    },
+    "require-dev": {
+        "squizlabs/php_codesniffer": "^3.11",
+        "wp-coding-standards/wpcs": "^3.1",
+        "dealerdirect/phpcodesniffer-composer-installer": "^1.0",
+        "phpstan/phpstan": "^2.0",
+        "szepeviktor/phpstan-wordpress": "^2.0",
+        "rector/rector": "^2.4",
+        "onstage2426/wp-hub-updater": "^1.0",
+        "phpunit/phpunit": "^13.3",
+        "php-stubs/woocommerce-stubs": "^11.2"
+    },
+    "config": {
+        "allow-plugins": {
+            "dealerdirect/phpcodesniffer-composer-installer": true
+        }
+    },
+    "autoload": {
+        "psr-4": {
+            "GafferSearch\\": "src/"
+        }
+    },
+    "scripts": {
+        "lint": "for f in templates/*.php endpoints/*.php gaffer-search.php uninstall.php; do php -l \"$f\" > /dev/null || exit 1; done",
+        "cs": "phpcs",
+        "cbf": "phpcbf",
+        "stan": "phpstan analyse --memory-limit=2G",
+        "rector": "rector process",
+        "rector-dry": "rector process --dry-run",
+        "test": "phpunit",
+        "check": [
+            "@lint",
+            "@cs",
+            "@stan",
+            "@test"
+        ]
+    }
+}

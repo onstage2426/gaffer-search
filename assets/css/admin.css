@@ -1,0 +1,1055 @@
+[x-cloak] { display: none !important; }
+
+/* ── Wrapper ─────────────────────────────────────────────── */
+
+.gaffer-search-admin {
+    max-width: 56rem;
+    padding: 1.5rem 0 2rem;
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+}
+
+.gaffer-search-admin *,
+.gaffer-search-admin *::before,
+.gaffer-search-admin *::after {
+    box-sizing: border-box;
+}
+
+/* ── Page header ─────────────────────────────────────────── */
+
+.gaffer-search-page-header {
+    margin-bottom: 1.5rem;
+}
+
+.gaffer-search-page-title {
+    font-size: 1.25rem !important;
+    font-weight: 600 !important;
+    color: #1e1e1e !important;
+    margin: 0 !important;
+    line-height: 1.4 !important;
+}
+
+.gaffer-search-page-subtitle {
+    font-size: 0.875rem !important;
+    color: #787c82 !important;
+    margin: 0.25rem 0 0 !important;
+}
+
+/* ── Notices ─────────────────────────────────────────────── */
+
+.gaffer-search-notice {
+    display: flex;
+    align-items: flex-start;
+    gap: 0.75rem;
+    padding: 0.75rem 1rem;
+    margin-bottom: 1.25rem;
+    border: 1px solid #bbf7d0;
+    border-radius: 2px;
+    background: #f0fdf4;
+}
+
+.gaffer-search-notice svg {
+    flex-shrink: 0;
+    width: 1rem;
+    height: 1rem;
+    margin-top: 0.125rem;
+    color: #16a34a;
+}
+
+.gaffer-search-notice p {
+    flex: 1;
+    font-size: 0.875rem !important;
+    color: #166534 !important;
+    margin: 0 !important;
+}
+
+.gaffer-search-notice--warn {
+    border-color: #fde68a;
+    background: #fffbeb;
+}
+
+.gaffer-search-notice--warn svg { color: #d97706; }
+.gaffer-search-notice--warn p   { color: #92400e !important; }
+.gaffer-search-notice--warn .gaffer-search-notice__close { color: #d97706 !important; }
+
+.gaffer-search-notice--error {
+    border-color: #fecaca;
+    background: #fef2f2;
+}
+
+.gaffer-search-notice--error svg { color: #dc2626; }
+.gaffer-search-notice--error p   { color: #991b1b !important; }
+.gaffer-search-notice--error .gaffer-search-notice__close { color: #dc2626 !important; }
+
+.gaffer-search-notice__close {
+    background: none !important;
+    border: none !important;
+    padding: 0 !important;
+    box-shadow: none !important;
+    cursor: pointer;
+    color: #16a34a !important;
+    opacity: 0.6;
+    margin-left: auto;
+    line-height: 1;
+}
+
+.gaffer-search-notice__close:hover {
+    opacity: 1;
+}
+
+.gaffer-search-notice__close svg {
+    width: 1rem;
+    height: 1rem;
+    margin: 0;
+    color: inherit;
+}
+
+/* ── Tabs ────────────────────────────────────────────────── */
+
+.gaffer-search-tabs-nav {
+    border-bottom: 1px solid #e2e4e7;
+    margin-bottom: 1.5rem;
+    display: flex;
+}
+
+.gaffer-search-tab {
+    background: none !important;
+    border: none !important;
+    border-bottom: 2px solid transparent !important;
+    padding: 0.625rem 1rem !important;
+    margin-bottom: -1px;
+    font-size: 0.875rem !important;
+    font-weight: 500 !important;
+    color: #787c82 !important;
+    cursor: pointer;
+    text-decoration: none !important;
+    line-height: 1.5 !important;
+    box-shadow: none !important;
+    transition: color 0.15s, border-color 0.15s;
+}
+
+.gaffer-search-tab:hover {
+    color: #1e1e1e !important;
+    border-bottom-color: #c3c4c7 !important;
+}
+
+.gaffer-search-tab.is-active {
+    color: #4f46e5 !important;
+    border-bottom-color: #4f46e5 !important;
+}
+
+/* ── Card ────────────────────────────────────────────────── */
+
+.gaffer-search-card {
+    background: #fff;
+    border: 1px solid #e2e4e7;
+    border-radius: 2px;
+    overflow: hidden;
+}
+
+.gaffer-search-card__header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 0.625rem 1.25rem;
+    background: #f9f9f9;
+    border-bottom: 1px solid #e2e4e7;
+}
+
+.gaffer-search-card__header-title {
+    font-size: 0.6875rem !important;
+    font-weight: 600 !important;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+    color: #787c82 !important;
+    margin: 0 !important;
+}
+
+.gaffer-search-card__body {
+    padding: 1.25rem;
+}
+
+.gaffer-search-card__footer {
+    display: flex;
+    align-items: center;
+    justify-content: flex-end;
+    gap: 10px;
+    padding: 0.625rem 1.25rem;
+    background: #f9f9f9;
+    border-top: 1px solid #e2e4e7;
+}
+
+/* ── Table ───────────────────────────────────────────────── */
+
+.gaffer-search-table {
+    width: 100% !important;
+    border-collapse: collapse !important;
+    border-spacing: 0 !important;
+    margin: 0 !important;
+}
+
+.gaffer-search-table thead tr {
+    background: #f9f9f9;
+}
+
+.gaffer-search-table th {
+    padding: 0.5rem 1rem !important;
+    text-align: left !important;
+    font-size: 0.6875rem !important;
+    font-weight: 600 !important;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+    color: #787c82 !important;
+    border-bottom: 1px solid #e2e4e7 !important;
+    white-space: nowrap;
+}
+
+.gaffer-search-table td {
+    padding: 0.625rem 1rem !important;
+    font-size: 0.875rem !important;
+    color: #1e1e1e !important;
+    border-bottom: 1px solid #f0f0f1 !important;
+    vertical-align: middle !important;
+}
+
+.gaffer-search-table tbody tr:last-child td {
+    border-bottom: none !important;
+}
+
+.gaffer-search-table tbody tr:hover {
+    background: #f9f9f9;
+}
+
+.gaffer-search-table .col-right { text-align: right !important; }
+.gaffer-search-table .col-center { text-align: center !important; }
+.gaffer-search-table .col-actions { text-align: right !important; white-space: nowrap; }
+
+.gaffer-search-name {
+    font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
+    font-weight: 600;
+}
+
+.gaffer-search-mono {
+    font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
+    font-size: 0.8125rem !important;
+    color: #787c82 !important;
+}
+
+.gaffer-search-num {
+    font-variant-numeric: tabular-nums;
+    color: #3c434a !important;
+}
+
+/* ── Tags / badges ───────────────────────────────────────── */
+
+.gaffer-search-tags {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.25rem;
+}
+
+.gaffer-search-tag {
+    display: inline-flex;
+    padding: 0.125rem 0.375rem;
+    font-size: 0.6875rem !important;
+    font-weight: 500 !important;
+    border-radius: 2px;
+    background: #f0f0f1;
+    color: #3c434a !important;
+    line-height: 1.4;
+}
+
+/* ── Buttons ─────────────────────────────────────────────── */
+
+.gaffer-search-btn {
+    display: inline-flex !important;
+    align-items: center !important;
+    justify-content: center !important;
+    gap: 0.375rem;
+    padding: 0.3125rem 0.75rem !important;
+    font-size: 0.8125rem !important;
+    font-weight: 600 !important;
+    line-height: 1.5 !important;
+    border-radius: 2px !important;
+    cursor: pointer !important;
+    text-decoration: none !important;
+    white-space: nowrap;
+    transition: background 0.15s, border-color 0.15s, color 0.15s !important;
+    border: 1px solid transparent !important;
+    box-shadow: none !important;
+}
+
+.gaffer-search-btn--primary {
+    background: #4f46e5 !important;
+    color: #fff !important;
+    border-color: #4338ca !important;
+}
+.gaffer-search-btn--primary:hover,
+.gaffer-search-btn--primary:focus {
+    background: #4338ca !important;
+    color: #fff !important;
+    border-color: #3730a3 !important;
+}
+
+.gaffer-search-btn--sm {
+    padding: 0.1875rem 0.5rem !important;
+    font-size: 0.75rem !important;
+}
+
+.gaffer-search-btn--outline {
+    background: #fff !important;
+    color: #3c434a !important;
+    border-color: #c3c4c7 !important;
+}
+.gaffer-search-btn--outline:hover {
+    background: #f6f7f7 !important;
+    color: #1e1e1e !important;
+}
+
+.gaffer-search-btn--danger {
+    background: #fff !important;
+    color: #d63638 !important;
+    border-color: #f9a8a8 !important;
+}
+.gaffer-search-btn--danger:hover {
+    background: #fef2f2 !important;
+}
+
+.gaffer-search-btn--ghost {
+    background: #fff !important;
+    color: #3c434a !important;
+    border-color: #c3c4c7 !important;
+}
+.gaffer-search-btn--ghost:hover {
+    background: #f6f7f7 !important;
+}
+
+/* ── Generator preview ───────────────────────────────────── */
+
+.gaffer-search-preview {
+    padding-top: 1rem;
+}
+
+.gaffer-search-preview__hint {
+    font-size: 0.8125rem !important;
+    color: #787c82 !important;
+    margin: 0 !important;
+}
+
+.gaffer-search-preview__error {
+    font-size: 0.8125rem !important;
+    color: #d63638 !important;
+    margin: 0 !important;
+}
+
+.gaffer-search-preview__pre {
+    margin: 0 !important;
+    padding: 0.75rem 1rem !important;
+    background: #f6f7f7;
+    border-radius: 4px;
+    font-size: 0.75rem !important;
+    line-height: 1.6;
+    overflow-x: auto;
+    max-height: 420px;
+    overflow-y: auto;
+    white-space: pre;
+}
+
+.gaffer-search-btn-group {
+    display: flex;
+    align-items: center;
+    gap: 0.375rem;
+    justify-content: flex-end;
+}
+
+/* ── Status ──────────────────────────────────────────────── */
+
+.gaffer-search-status {
+    font-size: 0.75rem;
+    transition: opacity 0.2s, color 0.2s;
+}
+
+.gaffer-search-status--loading { color: #787c82; }
+.gaffer-search-status--success { color: #00a32a; }
+.gaffer-search-status--error   { color: #d63638; }
+.gaffer-search-status--hidden  { opacity: 0; }
+
+/* ── Empty state ─────────────────────────────────────────── */
+
+.gaffer-search-empty {
+    text-align: center;
+    padding: 3.5rem 1.5rem;
+    border: 1px dashed #c3c4c7;
+    border-radius: 2px;
+    background: #fff;
+}
+
+.gaffer-search-empty svg {
+    width: 2rem;
+    height: 2rem;
+    color: #c3c4c7;
+    margin: 0 auto 0.75rem;
+    display: block;
+}
+
+.gaffer-search-empty__title {
+    font-size: 0.9375rem !important;
+    font-weight: 600 !important;
+    color: #1e1e1e !important;
+    margin: 0 0 0.25rem !important;
+}
+
+.gaffer-search-empty__text {
+    font-size: 0.8125rem !important;
+    color: #787c82 !important;
+    margin: 0 !important;
+}
+
+/* ── Form ────────────────────────────────────────────────── */
+
+.gaffer-search-form-row {
+    padding: 1rem 1.25rem;
+    border-bottom: 1px solid #f0f0f1;
+}
+
+.gaffer-search-form-row:last-child {
+    border-bottom: none;
+}
+
+.gaffer-search-label {
+    display: block !important;
+    font-size: 0.75rem !important;
+    font-weight: 600 !important;
+    color: #1e1e1e !important;
+    margin: 0 0 0.375rem !important;
+}
+
+.gaffer-search-label .required { color: #d63638; }
+
+.gaffer-search-input,
+.gaffer-search-select,
+.gaffer-search-textarea {
+    display: block !important;
+    width: 100% !important;
+    max-width: 24rem !important;
+    padding: 0.375rem 0.625rem !important;
+    font-size: 0.875rem !important;
+    font-family: inherit !important;
+    color: #1e1e1e !important;
+    background: #fff !important;
+    border: 1px solid #c3c4c7 !important;
+    border-radius: 2px !important;
+    box-shadow: none !important;
+    line-height: 1.5 !important;
+    transition: border-color 0.15s !important;
+}
+
+.gaffer-search-input--mono,
+.gaffer-search-textarea--mono {
+    font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace !important;
+}
+
+.gaffer-search-input:focus,
+.gaffer-search-select:focus,
+.gaffer-search-textarea:focus {
+    border-color: #4f46e5 !important;
+    outline: none !important;
+    box-shadow: 0 0 0 1px #4f46e5 !important;
+}
+
+.gaffer-search-hint {
+    font-size: 0.75rem !important;
+    color: #787c82 !important;
+    margin: 0.375rem 0 0 !important;
+}
+
+
+/* ── Section ─────────────────────────────────────────────── */
+
+.gaffer-search-section {
+    margin-top: 2rem;
+}
+
+.gaffer-search-section__title {
+    font-size: 0.9375rem !important;
+    font-weight: 600 !important;
+    color: #1e1e1e !important;
+    margin: 0 0 1rem !important;
+}
+
+/* ── Back link ───────────────────────────────────────────── */
+
+.gaffer-search-back-link {
+    display: inline-flex !important;
+    align-items: center !important;
+    gap: 0.375rem;
+    font-size: 0.875rem !important;
+    color: #787c82 !important;
+    text-decoration: none !important;
+    margin-bottom: 1.25rem !important;
+    transition: color 0.15s;
+}
+
+.gaffer-search-back-link:hover {
+    color: #1e1e1e !important;
+}
+
+.gaffer-search-back-link svg {
+    width: 1rem;
+    height: 1rem;
+    flex-shrink: 0;
+}
+
+/* ── Inline code / param name ────────────────────────────── */
+
+.gaffer-search-code-block {
+    display: block;
+    font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
+    font-size: 0.875rem;
+    color: #3c434a;
+    background: #f9f9f9;
+    border: 1px solid #e2e4e7;
+    border-radius: 2px;
+    padding: 0.625rem 0.875rem;
+    margin: 0;
+}
+
+.gaffer-search-param {
+    font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
+    font-size: 0.75rem;
+    background: #eef2ff;
+    color: #4338ca;
+    padding: 0.125rem 0.375rem;
+    border-radius: 2px;
+}
+
+.gaffer-search-param-required {
+    color: #f00;
+}
+
+/* ── Modal ───────────────────────────────────────────────── */
+
+.gaffer-search-modal-backdrop {
+    position: fixed;
+    inset: 0;
+    background: rgba(0, 0, 0, 0.45);
+    z-index: 100000;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 1rem;
+}
+
+.gaffer-search-modal {
+    background: #fff;
+    border: 1px solid #e2e4e7;
+    border-radius: 2px;
+    width: 100%;
+    max-width: 30rem;
+    max-height: 80vh;
+    overflow-y: auto;
+    box-shadow: 0 8px 32px rgba(0, 0, 0, 0.18);
+}
+
+.gaffer-search-modal__header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 0.75rem 1.25rem;
+    background: #f9f9f9;
+    border-bottom: 1px solid #e2e4e7;
+}
+
+.gaffer-search-modal__title {
+    font-size: 0.9375rem !important;
+    font-weight: 600 !important;
+    color: #1e1e1e !important;
+    margin: 0 !important;
+    font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
+}
+
+.gaffer-search-modal__close {
+    background: none !important;
+    border: none !important;
+    box-shadow: none !important;
+    padding: 0 !important;
+    cursor: pointer;
+    font-size: 1.25rem;
+    line-height: 1;
+    color: #787c82 !important;
+}
+
+.gaffer-search-modal__close:hover {
+    color: #1e1e1e !important;
+}
+
+.gaffer-search-modal__section {
+    padding: 1rem 1.25rem;
+    border-bottom: 1px solid #f0f0f1;
+}
+
+.gaffer-search-modal__section:last-child {
+    border-bottom: none;
+}
+
+.gaffer-search-modal__section-title {
+    font-size: 0.6875rem !important;
+    font-weight: 600 !important;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+    color: #787c82 !important;
+    margin: 0 0 0.75rem !important;
+}
+
+.gaffer-search-dl {
+    display: grid;
+    grid-template-columns: 7rem 1fr;
+    gap: 0.5rem 1rem;
+    margin: 0;
+}
+
+.gaffer-search-dl dt {
+    font-size: 0.8125rem;
+    color: #787c82;
+    font-weight: 500;
+    align-self: center;
+}
+
+.gaffer-search-dl dd {
+    font-size: 0.8125rem;
+    color: #1e1e1e;
+    margin: 0;
+    align-self: center;
+    font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
+}
+
+/* ── Edit page heading ───────────────────────────────────── */
+
+.gaffer-search-edit-title {
+    font-size: 1.25rem !important;
+    font-weight: 600 !important;
+    color: #1e1e1e !important;
+    margin: 0 0 1.5rem !important;
+    line-height: 1.4 !important;
+}
+
+.gaffer-search-edit-title code {
+    font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
+    font-size: 1rem;
+    font-weight: 500;
+    background: #f0f0f1;
+    color: #4338ca;
+    padding: 0.125rem 0.5rem;
+    border-radius: 2px;
+    margin-left: 0.25rem;
+}
+
+/* ── Stats row ───────────────────────────────────────────── */
+
+.gaffer-search-stats-row {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0;
+    border-bottom: 1px solid #f0f0f1;
+}
+
+.gaffer-search-stat {
+    display: flex;
+    flex-direction: column;
+    gap: 0.125rem;
+    padding: 0.875rem 1.25rem;
+    border-right: 1px solid #f0f0f1;
+    min-width: 8rem;
+}
+
+.gaffer-search-stat:last-child {
+    border-right: none;
+}
+
+.gaffer-search-stat__label {
+    font-size: 0.6875rem !important;
+    font-weight: 600 !important;
+    text-transform: uppercase;
+    letter-spacing: 0.04em;
+    color: #787c82 !important;
+}
+
+.gaffer-search-stat__value {
+    font-size: 0.875rem !important;
+    color: #1e1e1e !important;
+}
+
+/* ── Section description ─────────────────────────────────── */
+
+.gaffer-search-section__desc {
+    font-size: 0.8125rem !important;
+    color: #787c82 !important;
+    margin: -0.5rem 0 1rem !important;
+}
+
+/* ── Schema comparison ───────────────────────────────────── */
+
+.gaffer-search-schema {
+    display: flex;
+    flex-direction: column;
+    gap: 0.375rem;
+    margin-top: 0.25rem;
+}
+
+.gaffer-search-schema-row {
+    display: flex;
+    align-items: center;
+    flex-wrap: wrap;
+    gap: 0.375rem;
+}
+
+.gaffer-search-schema-label {
+    font-size: 0.6875rem !important;
+    font-weight: 600 !important;
+    text-transform: uppercase;
+    letter-spacing: 0.04em;
+    color: #787c82 !important;
+    width: 3rem;
+    flex-shrink: 0;
+}
+
+.gaffer-search-schema-empty {
+    font-size: 0.75rem !important;
+    color: #787c82 !important;
+    font-style: italic;
+}
+
+.gaffer-search-pill {
+    display: inline-block;
+    font-size: 0.6875rem !important;
+    font-family: monospace;
+    background: #f0f0f1;
+    color: #1e1e1e !important;
+    border-radius: 9999px;
+    padding: 0.125rem 0.625rem !important;
+    line-height: 1.6;
+}
+
+.gaffer-search-pill--stale {
+    background: #fef3c7;
+    color: #92400e !important;
+    text-decoration: line-through;
+    opacity: 0.7;
+}
+
+.gaffer-search-pill--active {
+    background: #fef3c7;
+    color: #92400e !important;
+    font-weight: 600 !important;
+}
+
+.gaffer-search-pill--ok {
+    background: #dcfce7;
+    color: #166534 !important;
+    font-weight: 600 !important;
+}
+
+.gaffer-search-pill--error {
+    background: #fef2f2;
+    color: #991b1b !important;
+    font-weight: 600 !important;
+}
+
+/* ── Index builder ───────────────────────────────────────── */
+
+.gaffer-search-choice-row {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.5rem;
+}
+
+.gaffer-search-choice {
+    display: flex;
+    align-items: flex-start;
+    gap: 0.5rem;
+    flex: 1 1 14rem;
+    padding: 0.625rem 0.75rem;
+    border: 1px solid #c3c4c7;
+    border-radius: 2px;
+    cursor: pointer;
+}
+
+.gaffer-search-choice.is-active {
+    border-color: #4f46e5;
+    box-shadow: 0 0 0 1px #4f46e5;
+}
+
+.gaffer-search-choice input { margin-top: 0.2rem !important; }
+.gaffer-search-choice strong { display: block; font-size: 0.8125rem; font-family: ui-monospace, SFMono-Regular, Menlo, monospace; }
+.gaffer-search-choice small { display: block; font-size: 0.75rem; color: #787c82; margin-top: 0.125rem; }
+
+.gaffer-search-checks {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.375rem 1rem;
+}
+
+.gaffer-search-check {
+    display: flex;
+    align-items: center;
+    gap: 0.3rem;
+    font-size: 0.8125rem;
+}
+
+.gaffer-search-check code { font-size: 0.6875rem; color: #787c82; background: none; padding: 0; }
+
+.gaffer-search-map-row {
+    display: flex;
+    gap: 0.5rem;
+    align-items: flex-start;
+    margin-bottom: 0.5rem;
+}
+
+.gaffer-search-map-row > .gaffer-search-input,
+.gaffer-search-map-row > .gaffer-search-select,
+.gaffer-search-map-row > .gaffer-search-combo,
+.gaffer-search-map-row > .gaffer-search-tagsinput {
+    flex: 1 1 0;
+    min-width: 0;
+    max-width: none !important;
+}
+
+.gaffer-search-map-row__arrow { color: #a7aaad; padding-top: 0.4rem; }
+
+/* Chips with suggestions (tagsComponent) and a single value with suggestions (comboComponent). */
+.gaffer-search-tagsinput,
+.gaffer-search-combo {
+    position: relative;
+    max-width: 36rem;
+}
+
+.gaffer-search-tagsinput__box {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 0.25rem;
+    min-height: 2.125rem;
+    padding: 0.1875rem 0.375rem;
+    background: #fff;
+    border: 1px solid #c3c4c7;
+    border-radius: 2px;
+    cursor: text;
+}
+
+.gaffer-search-tagsinput__box:focus-within {
+    border-color: #4f46e5;
+    box-shadow: 0 0 0 1px #4f46e5;
+}
+
+.gaffer-search-tagsinput__input {
+    flex: 1 1 6rem;
+    min-width: 6rem;
+    border: 0 !important;
+    box-shadow: none !important;
+    outline: none !important;
+    padding: 0.125rem 0.25rem !important;
+    font-size: 0.875rem !important;
+    font-family: ui-monospace, SFMono-Regular, Menlo, monospace !important;
+    background: transparent !important;
+    min-height: 0 !important;
+}
+
+.gaffer-search-chip {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.3rem;
+    padding: 0.125rem 0.25rem 0.125rem 0.5rem;
+    font-size: 0.8125rem;
+    font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+    line-height: 1.4;
+    color: #312e81;
+    background: #eef2ff;
+    border: 1px solid #c7d2fe;
+    border-radius: 2px;
+    cursor: pointer;
+}
+
+.gaffer-search-chip:hover { background: #fee2e2; border-color: #fca5a5; color: #991b1b; }
+.gaffer-search-chip__x { font-size: 0.875rem; line-height: 1; opacity: 0.6; }
+
+.gaffer-search-suggest {
+    position: absolute;
+    z-index: 20;
+    top: calc(100% + 2px);
+    left: 0;
+    right: 0;
+    max-height: 16rem;
+    overflow-y: auto;
+    margin: 0 !important;
+    padding: 0.25rem 0 !important;
+    list-style: none;
+    background: #fff;
+    border: 1px solid #c3c4c7;
+    border-radius: 2px;
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.08);
+}
+
+.gaffer-search-suggest li {
+    display: flex;
+    gap: 0.75rem;
+    align-items: baseline;
+    margin: 0 !important;
+    padding: 0.3rem 0.625rem;
+    font-size: 0.8125rem;
+    cursor: pointer;
+}
+
+.gaffer-search-suggest li.is-active { background: #eef2ff; }
+.gaffer-search-suggest code { background: none; padding: 0; font-size: 0.8125rem; white-space: nowrap; }
+.gaffer-search-suggest span { color: #787c82; font-size: 0.75rem; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+
+.gaffer-search-fields {
+    width: 100%;
+    border-collapse: collapse;
+    font-size: 0.8125rem;
+}
+
+.gaffer-search-fields th {
+    text-align: left;
+    font-size: 0.6875rem;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 0.03em;
+    color: #787c82;
+    padding: 0.375rem 0.5rem;
+    border-bottom: 1px solid #dcdcde;
+}
+
+.gaffer-search-fields td {
+    padding: 0.375rem 0.5rem;
+    border-bottom: 1px solid #f0f0f1;
+    vertical-align: top;
+    color: #50575e;
+}
+
+.gaffer-search-fields td small { display: block; color: #8c8f94; font-size: 0.6875rem; }
+.gaffer-search-fields code { font-size: 0.75rem; }
+.gaffer-search-yes { width: 1rem; height: 1rem; color: #166534; vertical-align: middle; }
+.gaffer-search-always { color: #166534; font-size: 0.75rem; font-weight: 600; }
+.gaffer-search-fields td code + code { margin-left: 0.25rem; }
+
+.gaffer-search-checklist {
+    list-style: none;
+    margin: 0 0 0.75rem !important;
+    padding: 0 !important;
+}
+
+.gaffer-search-checklist li {
+    margin: 0 0 0.25rem !important;
+    padding: 0.375rem 0.625rem;
+    font-size: 0.8125rem;
+    border-left: 3px solid;
+    border-radius: 2px;
+}
+
+.gaffer-search-checklist .is-error { background: #fef2f2; border-color: #d63638; color: #991b1b; }
+.gaffer-search-checklist .is-warn { background: #fffbeb; border-color: #dba617; color: #92400e; }
+.gaffer-search-checklist .is-info { background: #f0f6fc; border-color: #72aee6; color: #1d4f7a; }
+
+/* Builder cards hold dropdowns (.gaffer-search-suggest) that may reach past their edge. */
+.gaffer-search-builder .gaffer-search-card { overflow: visible; }
+
+.gaffer-search-card__toggle {
+    width: 100%;
+    gap: 0.75rem;
+    margin: 0;
+    border: 0;
+    border-radius: 2px;
+    font: inherit;
+    text-align: left;
+    cursor: pointer;
+}
+
+.gaffer-search-card__toggle.is-open {
+    border-bottom: 1px solid #e2e4e7;
+    border-radius: 2px 2px 0 0;
+}
+
+.gaffer-search-card__toggle:hover .gaffer-search-card__header-title { color: #1e1e1e !important; }
+.gaffer-search-card__toggle:focus-visible { outline: 2px solid #4f46e5; outline-offset: -2px; }
+
+.gaffer-search-card__summary {
+    flex: 1;
+    min-width: 0;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+    font-size: 0.75rem;
+    color: #8c8f94;
+    text-align: right;
+}
+
+.gaffer-search-card__chevron {
+    flex-shrink: 0;
+    width: 1.125rem;
+    height: 1.125rem;
+    margin-left: auto;
+    color: #8c8f94;
+    transition: transform 0.15s;
+}
+
+.gaffer-search-card__summary + .gaffer-search-card__chevron { margin-left: 0; }
+.gaffer-search-card__toggle.is-open .gaffer-search-card__chevron { transform: rotate(180deg); }
+
+.gaffer-search-input.is-valid { border-color: #00a32a !important; }
+.gaffer-search-input.is-invalid { border-color: #d63638 !important; }
+.gaffer-search-input.is-invalid:focus { box-shadow: 0 0 0 1px #d63638 !important; }
+
+.gaffer-search-validity {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 0.3rem;
+    margin: 0.375rem 0 0 !important;
+    font-size: 0.75rem !important;
+    font-weight: 500;
+}
+
+.gaffer-search-validity svg { width: 0.9375rem; height: 0.9375rem; flex-shrink: 0; }
+.gaffer-search-validity.is-ok { color: #008a20 !important; }
+.gaffer-search-validity.is-bad { color: #b32d2e !important; }
+.gaffer-search-validity + .gaffer-search-validity + .gaffer-search-hint,
+.gaffer-search-validity + .gaffer-search-hint { margin-top: 0.125rem !important; }
+
+.gaffer-search-link {
+    padding: 0;
+    border: 0;
+    background: none;
+    color: #4f46e5;
+    font: inherit;
+    text-decoration: underline;
+    cursor: pointer;
+}
+
+.gaffer-search-link code { font-size: 0.75rem; }
+
+/* Token builders */
+.gaffer-search-map-row > .gaffer-search-map-row__fixed { flex: 0 0 9.5rem; }
+.gaffer-search-map-row > input.gaffer-search-map-row__fixed { flex: 0 0 6rem; }
+.gaffer-search-map-row__grow { flex: 1 1 0; min-width: 0; }
+.gaffer-search-map-row__grow .gaffer-search-tagsinput { max-width: none; }
+
+.gaffer-search-range {
+    display: flex;
+    gap: 0.5rem;
+    align-items: flex-start;
+}
+
+.gaffer-search-range .gaffer-search-input { flex: 1 1 0; min-width: 0; }
+
+.gaffer-search-signed {
+    margin-top: 1rem;
+    padding-top: 1rem;
+    border-top: 1px solid #f0f0f1;
+}
+
+.gaffer-search-signed__head {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 1rem;
+}
