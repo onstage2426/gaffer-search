@@ -163,7 +163,7 @@ final class Engine
     public function status(): array
     {
         $service = $this->service();
-        $stats   = $service->stats();
+        $stats   = $service->files()->stats();
         $status  = [];
         $served  = State::served();
         foreach ((new IndexRegistry())->names() as $name) {

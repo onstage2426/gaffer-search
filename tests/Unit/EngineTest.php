@@ -6,9 +6,8 @@ namespace GafferSearch\Tests\Unit;
 
 use GafferSearch\Builders\ContentIndexBuilder;
 use GafferSearch\Engine;
+use GafferSearch\Services\Documents;
 use GafferSearch\Services\IndexRegistry;
-use GafferSearch\Services\IndexService;
-use GafferSearch\Services\SettingsService;
 use GafferSearch\Tests\TestCase;
 
 final class EngineTest extends TestCase
@@ -55,8 +54,8 @@ final class EngineTest extends TestCase
         self::assertSame(['category'], $registry->builder('news')?->config()['directTerms'] ?? null);
         self::assertSame(['price_m2' => 'float', 'sizes' => 'int', 'gone' => 'string'], $registry->get('news')?->fields);
 
-        $service  = new IndexService(new SettingsService(), $registry);
-        $decorate = new \ReflectionMethod($service, 'decorate');
-        self::assertSame(['id' => 1, 'price_m2' => 12.5, 'sizes' => [30, 40]], $decorate->invoke($service, ['id' => 1], 'news'), 'cast to their types; a missing value is left out');
+        $documents = new Documents($registry);
+        $decorate  = new \ReflectionMethod($documents, 'decorate');
+        self::assertSame(['id' => 1, 'price_m2' => 12.5, 'sizes' => [30, 40]], $decorate->invoke($documents, ['id' => 1], 'news'), 'cast to their types; a missing value is left out');
     }
 }

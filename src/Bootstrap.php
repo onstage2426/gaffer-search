@@ -13,6 +13,7 @@ use GafferSearch\Services\SearchConfig;
 use GafferSearch\Services\SettingsService;
 use GafferSearch\Services\State;
 use GafferSearch\Services\UpdateQueue;
+use GafferSearch\Services\Verifier;
 use GafferSearch\Support\ConfigLocation;
 use GafferSearch\Support\ProtectedDir;
 use GafferSearch\Support\Requirements;
@@ -178,13 +179,13 @@ class Bootstrap
         $this->index    = new IndexService($this->settings, $this->registry);
 
         if (defined('WP_CLI') && WP_CLI) {
-            \WP_CLI::add_command('gaffer-search describe', new \GafferSearch\Cli\DescribeCommand($this->index, $this->registry));
-            \WP_CLI::add_command('gaffer-search verify', new \GafferSearch\Cli\VerifyCommand($this->index, $this->registry));
+            \WP_CLI::add_command('gaffer-search describe', new \GafferSearch\Cli\DescribeCommand($this->index->files(), $this->registry));
+            \WP_CLI::add_command('gaffer-search verify', new \GafferSearch\Cli\VerifyCommand($this->index, $this->verifier(), $this->registry));
             \WP_CLI::add_command('gaffer-search rebuild', new \GafferSearch\Cli\RebuildCommand($this->index, $this->registry));
             \WP_CLI::add_command('gaffer-search update', new \GafferSearch\Cli\UpdateCommand($this->index, $this->registry));
             \WP_CLI::add_command('gaffer-search status', new \GafferSearch\Cli\StatusCommand(new Engine()));
             \WP_CLI::add_command('gaffer-search search', new \GafferSearch\Cli\SearchCommand($this->index, $this->registry));
-            \WP_CLI::add_command('gaffer-search clean', new \GafferSearch\Cli\CleanCommand($this->index));
+            \WP_CLI::add_command('gaffer-search clean', new \GafferSearch\Cli\CleanCommand($this->index->files()));
             \WP_CLI::add_command('gaffer-search rotate-secret', new \GafferSearch\Cli\RotateSecretCommand($this->settings, $this->registry));
         }
 
@@ -206,7 +207,7 @@ class Bootstrap
         add_action(ChangeTracker::REBUILD_HOOK, fn($name) => $this->runRequestedBuild( (string) $name));
         add_action(ChangeTracker::ENSURE_HOOK, fn($name) => $this->runEnsureBuild( (string) $name));
         add_action(ChangeTracker::UPDATE_HOOK, fn() => $this->runScheduledUpdates());
-        add_action(HealthCheck::HOOK, fn() => (new HealthCheck($this->index, $this->registry, $this->settings))->run());
+        add_action(HealthCheck::HOOK, fn() => (new HealthCheck($this->index, $this->verifier(), $this->registry, $this->settings))->run());
         if ($this->registry->names() !== []) {
             HealthCheck::schedule();
         }
@@ -349,9 +350,14 @@ class Bootstrap
             $this->syncCronEvent(
                 'gaffer_search_cron_rebuild_' . $name,
                 $def instanceof \GafferSearch\IndexDefinition ? $def->rebuildInterval : '',
-                $this->index->isBuilt($name),
+                $this->index->files()->isBuilt($name),
             );
         }
+    }
+
+    private function verifier(): Verifier
+    {
+        return new Verifier($this->index->files(), $this->index->documents());
     }
 
     private function searchConfig(): SearchConfig

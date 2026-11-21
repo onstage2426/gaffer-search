@@ -4,7 +4,7 @@ declare(strict_types=1);
 
 namespace GafferSearch\Cli;
 
-use GafferSearch\Services\IndexService;
+use GafferSearch\Services\IndexFiles;
 use WP_CLI;
 
 /**
@@ -17,7 +17,7 @@ use WP_CLI;
  */
 final class CleanCommand
 {
-    public function __construct(private readonly IndexService $index) {}
+    public function __construct(private readonly IndexFiles $files) {}
 
     /**
      * List index files no definition uses and leftover temp files; --delete removes them.
@@ -38,14 +38,14 @@ final class CleanCommand
     public function __invoke(array $args, array $assoc = []): void
     {
         $delete  = isset($assoc['delete']);
-        $orphans = $this->index->orphanStats();
+        $orphans = $this->files->orphanStats();
         foreach ($orphans as $slug => $orphan) {
             WP_CLI::log(sprintf('%s: index "%s" no definition uses, %s documents%s', $slug, $orphan['name'], $orphan['total_documents'] ?? '?', $delete ? ' (deleted)' : ''));
             if ($delete) {
-                $this->index->deleteOrphan($slug);
+                $this->files->deleteOrphan($slug);
             }
         }
-        $temp = $delete ? $this->index->cleanupTempFiles() : $this->index->tempFiles();
+        $temp = $delete ? $this->files->cleanupTempFiles() : $this->files->tempFiles();
         foreach ($temp as $file) {
             WP_CLI::log(basename($file) . ': a killed build\'s temp file' . ($delete ? ' (deleted)' : ''));
         }

@@ -6,6 +6,7 @@ namespace GafferSearch\Cli;
 
 use GafferSearch\Services\IndexRegistry;
 use GafferSearch\Services\IndexService;
+use GafferSearch\Services\Verifier;
 use WP_CLI;
 
 /**
@@ -23,6 +24,7 @@ final class VerifyCommand
 
     public function __construct(
         private readonly IndexService $index,
+        private readonly Verifier $verifier,
         private readonly IndexRegistry $registry,
     ) {}
 
@@ -55,7 +57,7 @@ final class VerifyCommand
             if (!$this->registry->has($name)) {
                 WP_CLI::error("No index registered as '{$name}'. Registered: " . implode(', ', $this->registry->names()));
             }
-            if (!$this->index->isBuilt($name)) {
+            if (!$this->index->files()->isBuilt($name)) {
                 WP_CLI::warning("{$name}: not built yet.");
                 $clean = false;
                 continue;
@@ -74,7 +76,7 @@ final class VerifyCommand
                 ));
             }
 
-            $result = $this->index->verify($name);
+            $result = $this->verifier->verify($name);
             $issues = count($result['missing']) + count($result['extra']) + count($result['stale']);
 
             if ($issues === 0) {
@@ -112,7 +114,7 @@ final class VerifyCommand
         } while ($applied['remaining'] > 0);
         // Only the fixed ones again: a second full verify takes as long as the first, and on a busy
         // shop finds the edits made meanwhile (the update log has those).
-        $result = $this->index->verifyIds($name, $ids);
+        $result = $this->verifier->verifyIds($name, $ids);
         $issues = count($result['missing']) + count($result['extra']) + count($result['stale']);
         WP_CLI::log($issues === 0
             ? WP_CLI::colorize("%G{$name}%n: fixed " . count($ids) . ' document(s).')

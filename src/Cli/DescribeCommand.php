@@ -5,21 +5,20 @@ declare(strict_types=1);
 namespace GafferSearch\Cli;
 
 use GafferSearch\Services\IndexRegistry;
-use GafferSearch\Services\IndexService;
+use GafferSearch\Services\IndexFiles;
 use WP_CLI;
 
 /**
  * `wp gaffer-search describe [<index>]` — schema introspection for a registered index
  * (facet fields, searchable fields, document count, last build).
- * Reuses IndexService::stats(), the same data source the admin dashboard's
- * Indexes tab already reads — no new capability needed from the index library.
+ * Reads IndexFiles::stats().
  *
  * @internal Not part of the public API (see API.md): may change in any version.
  */
 final class DescribeCommand
 {
     public function __construct(
-        private readonly IndexService $index,
+        private readonly IndexFiles $files,
         private readonly IndexRegistry $registry,
     ) {}
 
@@ -39,7 +38,7 @@ final class DescribeCommand
      */
     public function __invoke(array $args): void
     {
-        $stats = $this->index->stats();
+        $stats = $this->files->stats();
         $name  = $args[0] ?? null;
 
         if ($name === null) {

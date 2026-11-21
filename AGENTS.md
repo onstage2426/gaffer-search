@@ -34,8 +34,10 @@ BM25, facets; only its copy in `vendor/` is in this repo) and serves searches fr
   searches, `Services\Locks` adds the `term`/`visibility` locks; no global functions), `src/Support/`
   (`SearchRunner` — the one search path for the endpoint and PHP, `FilterQuery`, `Token`,
   `Labels`, `ConfigLocation`, `ProtectedDir`, `Language/` adapters), `src/Services/`
-  (`IndexService` builds per language, `SearchConfig` writes the endpoint config,
-  `ChangeTracker`, `IndexRegistry`: what `Engine::define()` registered), `src/Builders/`
+  (`IndexService` builds per language and applies the update log; `IndexFiles` its files, locks
+  and orphans; `Documents` what goes in; `Verifier` checks against the database; `State` every
+  stored per-index value; `HealthCheck` the daily job; `SearchConfig` writes the endpoint config;
+  `ChangeTracker`; `IndexRegistry`: what `Engine::define()` registered), `src/Builders/`
   (products, posts), `src/Bootstrap.php` (also `uninstall()`), WP-CLI (`src/Cli/`: status, rebuild,
   update, verify, describe, search, clean, rotate-secret). No admin screens: WP-CLI and Gaffer's
   `doctor --wp` are the interface.

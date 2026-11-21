@@ -5,27 +5,47 @@ declare(strict_types=1);
 namespace GafferSearch\Services;
 
 use Fuzor\Index;
-use Fuzor\SchemaConfig;
 use GafferSearch\BuildContext;
-use GafferSearch\Builders\IndexBuilderInterface;
-use GafferSearch\Support\IndexSlug;
 use GafferSearch\Support\Labels;
 use GafferSearch\Support\ProtectedDir;
 use GafferSearch\Support\Requirements;
 use GafferSearch\Support\Language\Languages;
 use GafferSearch\Support\SearchRunner;
 
-/** @internal Not part of the public API (see API.md): may change in any version. */
+/**
+ * Builds an index and keeps it in step with the content: full builds (every language's file,
+ * built into a temp file and swapped in), the update log applied from this server's position
+ * (`{index}.state.json`), which indexes need a build (missing, or built from another
+ * definition: signature()), and the search for `wp gaffer-search search`. The files are
+ * IndexFiles', the documents Documents', the checks against the database Verifier's.
+ *
+ * @internal Not part of the public API (see API.md): may change in any version.
+ */
 class IndexService
 {
-    /** @var array<string, Index> "{name}|{language}" → open index */
-    private array $indexes = [];
+    private readonly IndexFiles $files;
+    private readonly Documents $documents;
 
     public function __construct(
         private readonly SettingsService $settings,
         private readonly IndexRegistry $registry,
         private readonly UpdateQueue $queue = new UpdateQueue(),
-    ) {}
+    ) {
+        $this->files     = new IndexFiles($settings, $registry);
+        $this->documents = new Documents($registry);
+    }
+
+    /** This site's index files on this server. */
+    public function files(): IndexFiles
+    {
+        return $this->files;
+    }
+
+    /** What goes into an index. */
+    public function documents(): Documents
+    {
+        return $this->documents;
+    }
 
     /**
      * Rebuild one index, or every registered index — on a site with languages, every
@@ -52,7 +72,7 @@ class IndexService
                 $counts[$n] = 0;
                 // Every language's lock before the first file: a second build is refused before it
                 // builds anything, also while this one is on a later language.
-                $locks = $this->acquireLocks($n);
+                $locks = $this->files->acquireLocks($n);
                 try {
                     // Everything this build reads is read after this moment: a full rebuild
                     // requested before it is done by it (ChangeTracker::schedule(), satisfiedBy()).
@@ -74,7 +94,7 @@ class IndexService
                     // A full build from WP-CLI clears an earlier failure too.
                     State::clearError($n);
                 } finally {
-                    $this->releaseLocks($locks);
+                    $this->files->releaseLocks($locks);
                 }
             }
         } finally {
@@ -114,9 +134,9 @@ class IndexService
         $result = ['updated' => 0, 'deleted' => 0, 'remaining' => 0, 'rebuilt' => false];
         $state  = $this->readState($name);
 
-        $locks = $this->acquireLocks($name);
+        $locks = $this->files->acquireLocks($name);
         try {
-            if (!$this->isBuilt($name)) {
+            if (!$this->files->isBuilt($name)) {
                 // Nothing to update: the first build reads everything.
                 return $result;
             }
@@ -148,7 +168,7 @@ class IndexService
                 return $result;
             }
         } finally {
-            $this->releaseLocks($locks);
+            $this->files->releaseLocks($locks);
         }
 
         // Behind the pruned part of the log, or in another log: changes were missed.
@@ -205,10 +225,10 @@ class IndexService
                 if ($language !== null) {
                     $adapter->switch($language);
                 }
-                $context = $this->context($language);
-                $path    = $this->pathFor($name, $language);
+                $context = $this->documents->context($language);
+                $path    = $this->files->pathFor($name, $language);
                 $failed  = [];
-                $docs    = $ids === [] ? [] : iterator_to_array($this->generateDocsFor($name, $context, $ids, $failed), false);
+                $docs    = $ids === [] ? [] : iterator_to_array($this->documents->generateDocsFor($name, $context, $ids, $failed), false);
                 // A document whose closure threw keeps its stored version: neither updated nor gone.
                 $missing = array_values(array_diff($ids, array_map(fn(array $doc): int => (int) ($doc['id'] ?? 0), $docs), $failed));
 
@@ -222,10 +242,10 @@ class IndexService
                     $index->delete(...$gone);
                 }
                 $index->close();
-                unset($this->indexes["{$name}|{$language}"]);
+                $this->files->forget($name, $language);
 
                 if ($labels || Labels::lacksNames(Labels::read($path), $docs)) {
-                    Labels::write($path, $this->labelsFor($name, $context));
+                    Labels::write($path, $this->documents->labelsFor($name, $context));
                 }
                 $updated += count($docs);
                 $deleted += count($gone);
@@ -273,78 +293,14 @@ class IndexService
     /** Next to the index files, so it belongs to this server's copy (GAFFER_SEARCH_INDEX_DIR). */
     private function statePath(string $name): string
     {
-        return $this->indexDir() . '/' . $this->fileSlug($name, null) . '.state.json';
+        return $this->files->indexDir() . '/' . $this->files->fileSlug($name, null) . '.state.json';
     }
 
-    /**
-     * Every language's build lock of an index.
-     *
-     * @return list<resource>
-     * @throws \RuntimeException  When the index folder can't be created.
-     * @throws IndexBusyException
-     */
-    private function acquireLocks(string $name): array
-    {
-        $dir = $this->indexDir();
-        if (!ProtectedDir::ensure($dir)) {
-            // wp_mkdir_p() refuses a path with ../ in it (WP-CLI with a relative --path) and fails
-            // on permissions: name the folder, not the lock file that can't be opened in it.
-            throw new \RuntimeException("Cannot create the index folder {$dir}" . (str_contains($dir, '..') ? ' (a path with ../ in it: run WP-CLI with an absolute --path)' : ': check that it is writable') . '.'); // phpcs:ignore WordPress.Security.EscapeOutput.ExceptionNotEscaped
-        }
-        $locks = [];
-        try {
-            foreach (Languages::codes() as $language) {
-                $locks[] = $this->acquireLock($name, $language);
-            }
-        } catch (IndexBusyException $e) {
-            $this->releaseLocks($locks);
-            throw $e;
-        }
-        return $locks;
-    }
 
-    /** The file slug of one language's file of an index (null: the site has no languages). */
-    public function fileSlug(string $name, ?string $language): string
-    {
-        return IndexSlug::compute($name, $this->settings->searchSecret(), $language);
-    }
 
-    /** Every language's file exists. */
-    public function isBuilt(string $name): bool
-    {
-        foreach (Languages::codes() as $language) {
-            if (!Index::exists($this->pathFor($name, $language))) {
-                return false;
-            }
-        }
-        return true;
-    }
 
-    public function isOrphan(string $slug): bool
-    {
-        if (!Index::exists($this->indexDir() . '/' . $slug . '.db')) {
-            return false;
-        }
-        return !in_array($slug, $this->knownSlugs(), true);
-    }
 
-    /** @return list<string> The file slugs of every registered index in every language. */
-    private function knownSlugs(): array
-    {
-        $slugs = [];
-        foreach ($this->registry->names() as $name) {
-            foreach (Languages::codes() as $language) {
-                $slugs[] = $this->fileSlug($name, $language);
-            }
-        }
-        return $slugs;
-    }
 
-    public function deleteOrphan(string $slug): void
-    {
-        $this->removeIndexFiles($this->indexDir() . '/' . $slug . '.db');
-        @unlink($this->indexDir() . '/' . $slug . '.lock'); // phpcs:ignore WordPress.PHP.NoSilencedErrors.Discouraged
-    }
 
     /**
      * A search for `wp gaffer-search search`: the same SearchRunner path the endpoint uses.
@@ -354,17 +310,17 @@ class IndexService
      */
     public function search(string $name, string $query, int $limit = 10): array
     {
-        if (!$this->isBuilt($name)) {
+        if (!$this->files->isBuilt($name)) {
             throw new \RuntimeException("Index '{$name}' not built. wp gaffer-search rebuild builds it."); // phpcs:ignore WordPress.Security.EscapeOutput.ExceptionNotEscaped
         }
-        return SearchRunner::run($this->pathFor($name, Languages::current()), $query, SearchRunner::options(['limit' => $limit]));
+        return SearchRunner::run($this->files->pathFor($name, Languages::current()), $query, SearchRunner::options(['limit' => $limit]));
     }
 
     public function deleteIndex(string $name): void
     {
         foreach (Languages::codes() as $language) {
-            $this->removeIndexFiles($this->pathFor($name, $language));
-            unset($this->indexes["{$name}|{$language}"]);
+            $this->files->removeIndexFiles($this->files->pathFor($name, $language));
+            $this->files->forget($name, $language);
         }
         State::forget($name);
         @unlink($this->statePath($name)); // phpcs:ignore WordPress.PHP.NoSilencedErrors.Discouraged
@@ -389,7 +345,7 @@ class IndexService
             $built = true;
             foreach (Languages::codes() as $language) {
                 // A stat, not Index::exists() (which opens the file): this runs on every request.
-                $built = $built && file_exists($this->pathFor($name, $language));
+                $built = $built && file_exists($this->files->pathFor($name, $language));
             }
             if ($built && !$this->changed($name)) {
                 continue;
@@ -416,7 +372,7 @@ class IndexService
     public function satisfiedBy(string $name, float $requested): bool
     {
         $started = State::built($name)['started'] ?? null;
-        return $started !== null && (float) $started > $requested && $this->isBuilt($name);
+        return $started !== null && (float) $started > $requested && $this->files->isBuilt($name);
     }
 
     /**
@@ -441,7 +397,7 @@ class IndexService
     private function changed(string $name): bool
     {
         $recorded = State::built($name)['signature'] ?? null;
-        return $recorded !== null ? $recorded !== $this->signature($name) : $this->isBuilt($name);
+        return $recorded !== null ? $recorded !== $this->signature($name) : $this->files->isBuilt($name);
     }
 
     /**
@@ -500,463 +456,24 @@ class IndexService
         ];
     }
 
-    /**
-     * Remove the {path}.tmp-* files a rebuild leaves behind when its process is killed mid-build
-     * — for every registered index, every orphan, and temp files whose index file no longer
-     * exists at all (a killed first build). Fuzor never touches a build that is still running.
-     *
-     * @return list<string> The deleted paths.
-     */
-    public function cleanupTempFiles(int $minAgeSeconds = 3600): array
-    {
-        $dir = $this->indexDir();
-        if (!is_dir($dir)) {
-            return [];
-        }
 
-        $paths = array_map(fn(string $slug): string => $this->indexDir() . "/{$slug}.db", $this->knownSlugs());
-        foreach (glob($dir . '/*.db') ?: [] as $file) {
-            $paths[] = $file;
-        }
-        foreach (glob($dir . '/*.db.tmp-*') ?: [] as $file) {
-            $paths[] = (string) preg_replace('/\.tmp-[0-9a-f]+.*$/', '', $file);
-        }
 
-        $deleted = [];
-        foreach (array_unique($paths) as $path) {
-            $deleted = [...$deleted, ...Index::cleanupTempFiles($path, $minAgeSeconds)];
-        }
-        return $deleted;
-    }
 
-    /**
-     * The temp files cleanupTempFiles() would delete now (`wp gaffer-search clean` without
-     * --delete): a killed build's, older than $minAgeSeconds.
-     *
-     * @return list<string>
-     */
-    public function tempFiles(int $minAgeSeconds = 3600): array
-    {
-        $files = [];
-        foreach (glob($this->indexDir() . '/*.db.tmp-*') ?: [] as $file) {
-            if (is_file($file) && time() - (int) filemtime($file) >= $minAgeSeconds) {
-                $files[] = $file;
-            }
-        }
-        return $files;
-    }
 
-    /**
-     * Compare an index with what its builder produces right now — the proof that automatic
-     * rebuilds (or anything else) left it in sync. Reads every document from both sides, with
-     * documents() (a full build's path), never documentsFor(): the updates are what it checks.
-     * Takes as long as reading the builder's documents, so it runs without a time limit.
-     *
-     * @return array{checked: int, missing: list<int>, extra: list<int>, stale: list<int>}
-     *   missing — produced by the builder but not in the index; extra — in the index but no
-     *   longer produced; stale — in both, with different content.
-     */
-    public function verify(string $name): array
-    {
-        Requirements::assertMet();
-        $adapter  = Languages::adapter();
-        $original = $adapter->current();
-        $result   = ['checked' => 0, 'missing' => [], 'extra' => [], 'stale' => []];
 
-        // Like a build: WordPress only raises the limit itself in wp-admin pages and WP-cron,
-        // not in a CLI script.
-        wp_raise_memory_limit('admin');
-        set_time_limit(0);
 
-        try {
-            foreach (Languages::codes() as $language) {
-                if ($language !== null) {
-                    $adapter->switch($language);
-                }
-                $expected = [];
-                foreach ($this->generateDocs($name, $this->context($language)) as $doc) {
-                    $expected[ (int) ($doc['id'] ?? 0)] = self::fingerprint($doc);
-                }
-                $result['checked'] += count($expected);
 
-                foreach ($this->indexFor($name, $language)->stream(500) as $id => $stored) {
-                    if (!isset($expected[$id])) {
-                        $result['extra'][] = $id;
-                        continue;
-                    }
-                    if ($expected[$id] !== self::fingerprint($stored)) {
-                        $result['stale'][] = $id;
-                    }
-                    unset($expected[$id]);
-                }
-                $result['missing'] = [...$result['missing'], ...array_keys($expected)];
-            }
-        } finally {
-            if ($original !== null) {
-                $adapter->switch($original);
-            }
-        }
 
-        return $result;
-    }
 
-    /**
-     * verify() for these documents only, through documentsFor() (the updates' path): whether
-     * the documents verify --fix updated are written as the builder produces them now. Seconds
-     * instead of a full verify; a builder whose full and per-document output differ only shows
-     * in a full verify.
-     *
-     * @param  list<int> $ids
-     * @return array{checked: int, missing: list<int>, extra: list<int>, stale: list<int>}
-     */
-    public function verifyIds(string $name, array $ids): array
-    {
-        $adapter  = Languages::adapter();
-        $original = $adapter->current();
-        $result   = ['checked' => 0, 'missing' => [], 'extra' => [], 'stale' => []];
-        try {
-            foreach (Languages::codes() as $language) {
-                if ($language !== null) {
-                    $adapter->switch($language);
-                }
-                $expected = [];
-                $failed   = [];
-                foreach ($ids === [] ? [] : $this->generateDocsFor($name, $this->context($language), $ids, $failed) as $doc) {
-                    $expected[ (int) ($doc['id'] ?? 0)] = self::fingerprint($doc);
-                }
-                $stored = $ids === [] ? [] : $this->indexFor($name, $language)->getMany(...$ids);
-                foreach (array_diff($ids, $failed) as $id) {
-                    if (isset($expected[$id]) && !isset($stored[$id])) {
-                        $result['missing'][] = $id;
-                    } elseif (!isset($expected[$id]) && isset($stored[$id])) {
-                        $result['extra'][] = $id;
-                    } elseif (isset($expected[$id]) && $expected[$id] !== self::fingerprint($stored[$id])) {
-                        $result['stale'][] = $id;
-                    }
-                }
-                $result['checked'] += count($expected);
-            }
-        } finally {
-            if ($original !== null) {
-                $adapter->switch($original);
-            }
-        }
 
-        return $result;
-    }
 
-    /**
-     * Documents for a sample check (HealthCheck): about half drawn at random from the watched
-     * posts in the database (what the index may be missing or hold outdated), half a slice of
-     * the index at a random place (what it may hold that's gone). The first language's file
-     * stands for the others: verifyIds() checks every language. Empty when the index isn't built.
-     *
-     * @return list<int>
-     */
-    public function sampleIds(string $name, int $count): array
-    {
-        global $wpdb;
-        $language = Languages::codes()[0] ?? null;
-        if (!Index::exists($this->pathFor($name, $language))) {
-            return [];
-        }
-        $half  = max(1, intdiv($count, 2));
-        $types = $this->builderFor($name)->watches()->postTypes;
-        $ids   = [];
-        if ($types !== []) {
-            $in  = implode(',', array_fill(0, count($types), '%s'));
-            $ids = array_map(intval(...), (array) $wpdb->get_col($wpdb->prepare("SELECT ID FROM {$wpdb->posts} WHERE post_type IN ({$in}) ORDER BY RAND() LIMIT %d", ...[...$types, $half]))); // phpcs:ignore WordPress.DB.PreparedSQL.InterpolatedNotPrepared,WordPress.DB.PreparedSQLPlaceholders.UnfinishedPrepare,WordPress.DB.DirectDatabaseQuery -- the table name and one %s per post type
-        }
-        $index = $this->indexFor($name, $language);
-        $total = $index->count();
-        if ($total > 0) {
-            $result = $index->search('', new \Fuzor\SearchOptions(limit: $half, offset: random_int(0, max(0, $total - $half)), attributesToRetrieve: ['id']));
-            foreach ($result->hits as $hit) {
-                $ids[] = (int) ($hit['id'] ?? 0);
-            }
-        }
-        return array_values(array_unique(array_filter($ids, static fn(int $id): bool => $id > 0)));
-    }
 
-    /** @return array<string, array<string, mixed>> Per index name. */
-    public function stats(): array
-    {
-        $result = [];
 
-        foreach ($this->registry->names() as $name) {
-            $exists        = true;
-            $indexCount    = null;
-            $lastModified  = null;
-            $schema        = null;
-            $schemaVersion = null;
-            $languages     = [];
 
-            foreach (Languages::codes() as $language) {
-                $path = $this->pathFor($name, $language);
-                if (!Index::exists($path)) {
-                    $exists = false;
-                    if ($language !== null) {
-                        $languages[$language] = null;
-                    }
-                    continue;
-                }
-                try {
-                    $idx          = $this->indexFor($name, $language);
-                    $count        = $idx->count();
-                    $indexCount   = ($indexCount ?? 0) + $count;
-                    $lastModified = max($lastModified ?? 0, Index::lastModified($path));
-                    if ($language !== null) {
-                        $languages[$language] = $count;
-                    }
-                    // The current language's file describes the index (all files share the
-                    // builder's fields).
-                    if ($schema === null || $language === Languages::current()) {
-                        $schemaVersion = $idx->schemaVersion;
-                        $schema        = [
-                            'searchable_fields' => $idx->searchableAttributes,
-                            'filterable_fields' => $idx->filterableAttributes,
-                            'sortable_fields'   => $idx->sortableAttributes,
-                        ];
-                    }
-                } catch (\Throwable) {
-                    // Corrupt or unreadable index; report nulls.
-                }
-            }
 
-            $duration = State::built($name)['duration'] ?? null;
 
-            $result[$name] = [
-                'exists'              => $exists,
-                'total_documents'     => $indexCount,
-                'languages'           => $languages,
-                'last_modified'       => $lastModified,
-                'build_duration'      => $duration !== null ? $this->formatDuration( (float) $duration) : null,
-                'schema'              => $schema,
-                'schema_version'      => $schemaVersion,
-            ];
-        }
 
-        return $result;
-    }
 
-    /**
-     * Index files that exist on disk but have no registered definition.
-     *
-     * @return array<string, array{name: string, total_documents: int|null, last_modified: int|null}>
-     */
-    public function orphanStats(): array
-    {
-        $dir = $this->indexDir();
-        if (!is_dir($dir)) {
-            return [];
-        }
-
-        $knownSlugs = array_fill_keys($this->knownSlugs(), true);
-
-        $orphans = [];
-        foreach (glob($dir . '/*.db') ?: [] as $file) {
-            $slug = basename($file, '.db');
-            if (isset($knownSlugs[$slug])) {
-                continue;
-            }
-            // Strip trailing _<12hexchars> to recover the readable name.
-            $displayName = (string) preg_replace('/_[0-9a-f]{12}$/', '', $slug);
-            try {
-                $idx            = new Index($file, readonly: true);
-                $orphans[$slug] = [
-                    'name'            => $displayName,
-                    'total_documents' => $idx->count(),
-                    'last_modified'   => Index::lastModified($file),
-                ];
-            } catch (\Throwable) {
-                $orphans[$slug] = ['name' => $displayName, 'total_documents' => null, 'last_modified' => null];
-            }
-        }
-
-        return $orphans;
-    }
-
-    /** One language's file of an index (null: the site has no languages). */
-    public function pathFor(string $name, ?string $language): string
-    {
-        return $this->indexDir() . '/' . $this->fileSlug($name, $language) . '.db';
-    }
-
-    private function context(?string $language): BuildContext
-    {
-        return new BuildContext(get_current_blog_id(), $language);
-    }
-
-    private function indexDir(): string
-    {
-        return (string) $this->settings->get('index_dir');
-    }
-
-    private function removeIndexFiles(string $path): void
-    {
-        Labels::delete($path);
-        if (is_dir(dirname($path))) {
-            // The path, every published version, their sidecars, and leftover temp files.
-            Index::remove($path);
-        }
-    }
-
-    private function formatDuration(float $seconds): string
-    {
-        if ($seconds >= 3600) {
-            return sprintf('%dh %dm', (int) ($seconds / 3600), (int) (( (int) $seconds % 3600) / 60));
-        }
-        if ($seconds >= 60) {
-            return sprintf('%dm %ds', (int) ($seconds / 60), (int) $seconds % 60);
-        }
-        if ($seconds >= 1) {
-            return sprintf('%.1fs', $seconds);
-        }
-        $ms = $seconds * 1000;
-        if ($ms >= 1) {
-            return sprintf('%.0fms', $ms);
-        }
-        return sprintf('%.0fμs', $ms * 1000);
-    }
-
-    private function builderFor(string $name): IndexBuilderInterface
-    {
-        $builder = $this->registry->builder($name);
-        if ($builder === null) {
-            throw new \RuntimeException("No index registered as '{$name}'."); // phpcs:ignore WordPress.Security.EscapeOutput.ExceptionNotEscaped
-        }
-        return $builder;
-    }
-
-    private function schemaFor(string $name, BuildContext $context): SchemaConfig
-    {
-        return self::withoutDuplicates($this->builderFor($name)->schema($context));
-    }
-
-    /**
-     * $schema with each field listed once: a `gaffer_search_index_schema` filter that appends a field the
-     * builder already declares (`[...$schema->filterableAttributes, 'brand']`) must not list it twice.
-     */
-    private static function withoutDuplicates(SchemaConfig $schema): SchemaConfig
-    {
-        $unique = static fn(?array $fields): ?array => $fields !== null ? array_values(array_unique($fields)) : null;
-        if ($unique($schema->filterableAttributes) === $schema->filterableAttributes
-            && $unique($schema->sortableAttributes) === $schema->sortableAttributes
-            && $unique($schema->searchableAttributes) === $schema->searchableAttributes) {
-            return $schema;
-        }
-        return new SchemaConfig(
-            stemmer:              $schema->stemmer,
-            store:                $schema->store,
-            filterableAttributes: $unique($schema->filterableAttributes) ?? [],
-            sortableAttributes:   $unique($schema->sortableAttributes) ?? [],
-            searchableAttributes: $unique($schema->searchableAttributes),
-            stripHtml:            $schema->stripHtml,
-            stopWords:            $schema->stopWords,
-        );
-    }
-
-    /**
-     * The builder's documents, each passed through the `gaffer_search_index_document` filter —
-     * return a changed array to adjust a document, or null to leave it out of the index.
-     *
-     * @return \Generator<int, array<string, mixed>>
-     */
-    private function generateDocs(string $name, BuildContext $context): \Generator
-    {
-        foreach ($this->builderFor($name)->documents($context) as $doc) {
-            $doc = $this->decorate($doc, $name);
-            if (is_array($doc)) {
-                yield $doc;
-            }
-        }
-    }
-
-    /**
-     * The builder's current documents for these IDs, through the same filter as generateDocs().
-     * One the theme's `document` closure throws for is left out and its ID added to $failed
-     * (logged): one broken product must not stop every later change from reaching the index.
-     * A full build still fails on it (contract: the old index stays, status() has the error).
-     *
-     * @param  list<int> $ids
-     * @param  list<int> $failed
-     * @return \Generator<int, array<string, mixed>>
-     */
-    private function generateDocsFor(string $name, BuildContext $context, array $ids, array &$failed): \Generator
-    {
-        foreach ($this->builderFor($name)->documentsFor($context, ...$ids) as $doc) {
-            try {
-                $doc = $this->decorate($doc, $name);
-            } catch (\Throwable $e) {
-                $failed[] = (int) ($doc['id'] ?? 0);
-                error_log("Gaffer Search: index \"{$name}\" kept document " . (int) ($doc['id'] ?? 0) . " as stored: its document closure threw {$e->getMessage()}"); // phpcs:ignore WordPress.PHP.DevelopmentFunctions.error_log_error_log
-                continue;
-            }
-            if (is_array($doc)) {
-                yield $doc;
-            }
-        }
-    }
-
-    /**
-     * The names to write next to an index: the definition's `labels` callable's (contract 1)
-     * for the values of fields without terms, and the builder's term names, which win for a
-     * taxonomy field. Only string names of scalar values are kept.
-     *
-     * @return array<string, array<string, string>>
-     */
-    private function labelsFor(string $name, BuildContext $context): array
-    {
-        $labels   = [];
-        $callable = $this->registry->get($name)?->labels;
-        foreach ($callable !== null ? (array) $callable($name) : [] as $field => $names) {
-            foreach (is_array($names) ? $names : [] as $value => $label) {
-                if (is_scalar($label)) {
-                    $labels[ (string) $field][ (string) $value] = (string) $label;
-                }
-            }
-        }
-
-        return [...$labels, ...$this->builderFor($name)->labels($context)];
-    }
-
-    /**
-     * A built document with what the definition's `document` callable adds (contract 1).
-     *
-     * @param  array<string, mixed> $doc
-     * @return array<string, mixed>|null
-     */
-    private function decorate(array $doc, string $name): ?array
-    {
-        $definition = $this->registry->get($name);
-        if ($definition?->document === null) {
-            return $doc;
-        }
-        $doc = ($definition->document)($doc, $name);
-        if (!is_array($doc)) {
-            return null;
-        }
-        // The declared fields (document_fields) as their type, as meta values are: numbers sort
-        // and filter as numbers. One the closure leaves out (or gives null, or a number field
-        // something that isn't a number) is missing, never 0.
-        foreach ($definition->fields as $field => $type) {
-            $value  = $doc[$field] ?? null;
-            $usable = $type === 'string' ? is_scalar(...) : is_numeric(...);
-            $value  = is_array($value) ? array_values(array_filter($value, $usable)) : $value;
-            if ($value === null || $value === [] || (!is_array($value) && !$usable($value))) {
-                unset($doc[$field]);
-                continue;
-            }
-            $cast        = static fn(mixed $v): int|float|string => match ($type) {
-                'int'   => (int) $v,
-                'float' => (float) $v,
-                default => (string) $v,
-            };
-            $doc[$field] = is_array($value) ? array_map($cast, $value) : $cast($value);
-        }
-
-        return $doc;
-    }
 
     /** The definition `version` the index was last built from, null when unknown. */
     public function builtVersion(string $name): ?string
@@ -970,14 +487,6 @@ class IndexService
         return State::building($name);
     }
 
-    /** @param list<resource> $locks */
-    private function releaseLocks(array $locks): void
-    {
-        foreach ($locks as $lock) {
-            flock($lock, LOCK_UN);
-            fclose($lock); // phpcs:ignore WordPress.WP.AlternativeFunctions.file_system_operations_fclose -- flock() needs a native handle
-        }
-    }
 
     /**
      * Build one language's file of an index (null: the site has no languages). The caller holds
@@ -985,20 +494,20 @@ class IndexService
      */
     private function buildOne(string $name, ?string $language): int
     {
-        $builder = $this->builderFor($name);
+        $builder = $this->documents->builderFor($name);
         if ($language !== null) {
             Languages::adapter()->switch($language);
         }
-        $context = $this->context($language);
+        $context = $this->documents->context($language);
 
-        $dir = $this->indexDir();
+        $dir = $this->files->indexDir();
         ProtectedDir::ensure($dir);
 
         wp_raise_memory_limit('admin');
         set_time_limit(0);
 
-        $path      = $this->pathFor($name, $language);
-        $schema    = $this->schemaFor($name, $context);
+        $path      = $this->files->pathFor($name, $language);
+        $schema    = $this->documents->schemaFor($name, $context);
         $chunkSize = max(1, $builder->chunkSize());
         $synonyms  = $builder->synonyms();
         $count     = 0;
@@ -1019,7 +528,7 @@ class IndexService
             // insert() reads the generator a chunk at a time (Config::$insertChunkSize), so
             // memory follows the chunk, not the index; the progress (isBuilding()) is updated
             // once per builder batch.
-            $new->insert($this->generateDocs($name, $context), progress: function (int $done) use ($name, $chunkSize, &$count): void {
+            $new->insert($this->documents->generateDocs($name, $context), progress: function (int $done) use ($name, $chunkSize, &$count): void {
                 $count = $done;
                 if ($done % $chunkSize === 0) {
                     State::heartbeat($name, $done);
@@ -1027,14 +536,14 @@ class IndexService
             });
 
             // Before the new index is swapped in, so its slugs never go out without names.
-            Labels::write($path, $this->labelsFor($name, $context));
+            Labels::write($path, $this->documents->labelsFor($name, $context));
         };
 
         // rebuild() opens the old file first (except one of a schema revision it rejects
         // outright): a file this Fuzor can't open — written by a development build of the
         // same revision, or damaged — would fail every build, so it goes.
-        if (Index::exists($path) && !self::opens($path)) {
-            $this->removeIndexFiles($path);
+        if (Index::exists($path) && !IndexFiles::opens($path)) {
+            $this->files->removeIndexFiles($path);
         }
 
         // Removed by build() when every language is done.
@@ -1051,75 +560,11 @@ class IndexService
             );
         }
 
-        $this->indexes["{$name}|{$language}"] = $index;
+        $this->files->remember($name, $language, $index);
         return $count;
     }
 
-    /**
-     * An exclusive, non-blocking lock per index, held for the whole build. flock() is released
-     * by the OS when a process dies, so a killed build never leaves the index locked — unlike a
-     * transient or object-cache flag, which also only works across processes with a persistent
-     * object cache.
-     *
-     * @return resource
-     * @throws \RuntimeException  When the lock file can't be opened.
-     * @throws IndexBusyException When another build holds the lock.
-     */
-    private function acquireLock(string $name, ?string $language)
-    {
-        $handle = fopen($this->indexDir() . '/' . $this->fileSlug($name, $language) . '.lock', 'c'); // phpcs:ignore WordPress.WP.AlternativeFunctions.file_system_operations_fopen
-        if ($handle === false) {
-            throw new \RuntimeException("Cannot open the build lock for index '{$name}'."); // phpcs:ignore WordPress.Security.EscapeOutput.ExceptionNotEscaped
-        }
-        if (!flock($handle, LOCK_EX | LOCK_NB)) {
-            fclose($handle); // phpcs:ignore WordPress.WP.AlternativeFunctions.file_system_operations_fclose -- flock() needs a native handle
-            throw new IndexBusyException("Index '{$name}' is already being rebuilt."); // phpcs:ignore WordPress.Security.EscapeOutput.ExceptionNotEscaped
-        }
-        return $handle;
-    }
 
-    /** Whether this Fuzor opens the index at $path. */
-    private static function opens(string $path): bool
-    {
-        try {
-            // A file missing info keys also raises "Undefined array key" warnings first.
-            (@new Index($path, readonly: true))->close(); // phpcs:ignore WordPress.PHP.NoSilencedErrors.Discouraged
-            return true;
-        } catch (\Throwable) {
-            return false;
-        }
-    }
 
-    private function indexFor(string $name, ?string $language): Index
-    {
-        $key = "{$name}|{$language}";
-        if (!isset($this->indexes[$key])) {
-            $path = $this->pathFor($name, $language);
-            if (!Index::exists($path)) {
-                throw new \RuntimeException("Index '{$name}' not built. wp gaffer-search rebuild builds it."); // phpcs:ignore WordPress.Security.EscapeOutput.ExceptionNotEscaped
-            }
-            $this->indexes[$key] = new Index($path, readonly: true);
-        }
 
-        return $this->indexes[$key];
-    }
-
-    /**
-     * A content hash that ignores key order, for verify().
-     *
-     * @param array<string, mixed> $doc
-     */
-    private static function fingerprint(array $doc): string
-    {
-        $sort = static function (mixed $value) use (&$sort): mixed {
-            if (!is_array($value)) {
-                return $value;
-            }
-            if (!array_is_list($value)) {
-                ksort($value);
-            }
-            return array_map($sort, $value);
-        };
-        return md5( (string) wp_json_encode($sort($doc), JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES));
-    }
 }

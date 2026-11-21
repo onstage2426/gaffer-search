@@ -13,6 +13,7 @@ use GafferSearch\Services\IndexRegistry;
 use GafferSearch\Services\IndexService;
 use GafferSearch\Services\SettingsService;
 use GafferSearch\Services\State;
+use GafferSearch\Services\Verifier;
 use GafferSearch\Tests\TestCase;
 use GafferSearch\Watch;
 
@@ -26,8 +27,8 @@ final class HealthCheckTest extends TestCase
         DriftingBuilder::$renamed = false;
         self::register(new IndexDefinition(name: self::NAME, label: 'Health', description: ''), new DriftingBuilder());
         $queue   = new MemoryQueue();
-        $service = new SampledIndexService(new SettingsService(), new IndexRegistry(), $queue);
-        $check   = new HealthCheck($service, new IndexRegistry(), new SettingsService());
+        $service = new IndexService(new SettingsService(), new IndexRegistry(), $queue);
+        $check   = new HealthCheck($service, new SampledVerifier($service->files(), $service->documents()), new IndexRegistry(), new SettingsService());
         try {
             self::assertNull(State::drift(self::NAME), 'nothing before the first check');
 
@@ -53,8 +54,8 @@ final class HealthCheckTest extends TestCase
     }
 }
 
-/** IndexService with a fixed sample (the real one reads $wpdb). */
-final class SampledIndexService extends IndexService
+/** Verifier with a fixed sample (the real one reads $wpdb). */
+final class SampledVerifier extends Verifier
 {
     public function sampleIds(string $name, int $count): array
     {

@@ -52,7 +52,7 @@ final class IndexLifecycleTest extends TestCase
         $this->service->build(self::NAME);
         self::assertSame([], $this->service->needsBuild());
 
-        unlink($this->service->pathFor(self::NAME, null));
+        unlink($this->service->files()->pathFor(self::NAME, null));
         self::assertSame([self::NAME], $this->service->needsBuild(), 'its file deleted');
     }
 
@@ -62,7 +62,7 @@ final class IndexLifecycleTest extends TestCase
         $this->service->build(self::NAME);
         self::assertSame([], $this->service->needsBuild());
 
-        \Fuzor\Index::remove($this->service->pathFor(self::NAME, 'en'));
+        \Fuzor\Index::remove($this->service->files()->pathFor(self::NAME, 'en'));
         self::assertSame([self::NAME], $this->service->needsBuild(), 'one language without its file');
     }
 

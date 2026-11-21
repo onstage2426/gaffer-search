@@ -89,7 +89,7 @@ final class IndexServiceTest extends TestCase
     {
         self::register(new IndexDefinition(name: 'older', label: 'Older', description: ''), new FixtureBuilder());
         $service = new IndexService(new SettingsService(), new IndexRegistry());
-        $path    = $service->pathFor('older', null);
+        $path    = $service->files()->pathFor('older', null);
         // As a development build of the same schema revision wrote it: an info key missing.
         Index::rebuild($path, static fn(Index $new) => $new->insert([['id' => 1, 'title' => 'Oud']]), schema: new SchemaConfig())->close();
         (new \PDO('sqlite:' . $path))->exec("DELETE FROM info WHERE key = 'stop_words'");
@@ -114,14 +114,14 @@ final class IndexServiceTest extends TestCase
 
         try {
             // As a build busy with the second language holds it.
-            $lock = fopen(self::dir() . '/' . $service->fileSlug('bilingual', 'en') . '.lock', 'c');
+            $lock = fopen(self::dir() . '/' . $service->files()->fileSlug('bilingual', 'en') . '.lock', 'c');
             self::assertNotFalse($lock);
             self::assertTrue(flock($lock, LOCK_EX | LOCK_NB));
             try {
                 $service->build('bilingual');
                 self::fail('A second build ran.');
             } catch (IndexBusyException) {
-                self::assertFileDoesNotExist($service->pathFor('bilingual', 'nl'), 'nothing built before the refusal');
+                self::assertFileDoesNotExist($service->files()->pathFor('bilingual', 'nl'), 'nothing built before the refusal');
             }
 
             flock($lock, LOCK_UN);

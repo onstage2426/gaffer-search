@@ -9,7 +9,7 @@ use GafferSearch\Support\ConfigLocation;
 /**
  * A daily check of what nothing else notices (WP-cron job HOOK, per site):
  *
- *  - **drift:** a sample of each index's documents (IndexService::sampleIds()) compared with
+ *  - **drift:** a sample of each index's documents (Verifier::sampleIds()) compared with
  *    what the builder produces now (verifyIds()). A write that fires no hook (direct SQL, an
  *    import that bypasses WordPress) leaves the index outdated without a log row; the documents
  *    found go into the update log, as `verify --fix` does, and their number is reported.
@@ -30,6 +30,7 @@ final class HealthCheck
 
     public function __construct(
         private readonly IndexService $index,
+        private readonly Verifier $verifier,
         private readonly IndexRegistry $registry,
         private readonly SettingsService $settings,
     ) {}
@@ -57,11 +58,11 @@ final class HealthCheck
     /** @return array{differing: int, checked: int, time: int} */
     public function checkDrift(string $name): array
     {
-        $ids = $this->index->sampleIds($name, self::SAMPLE);
+        $ids = $this->verifier->sampleIds($name, self::SAMPLE);
         if ($ids === []) {
             return ['differing' => 0, 'checked' => 0, 'time' => time()];
         }
-        $found     = $this->index->verifyIds($name, $ids);
+        $found     = $this->verifier->verifyIds($name, $ids);
         $differing = array_values(array_unique([...$found['missing'], ...$found['extra'], ...$found['stale']]));
         $this->index->queueUpdates($name, $differing);
         if ($differing !== []) {
