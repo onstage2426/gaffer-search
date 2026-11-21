@@ -6,6 +6,8 @@
   multisite, updates after content changes, WP-CLI and system cron, several web servers,
   verifying an index, rotating secrets.
 - **[migration.md](migration.md)** — what changed per version for sites.
+- **[compat-debt.md](compat-debt.md)** — what a site's search depends on that could break it, and
+  what the plugin carries for compatibility.
 
 Themes don't call the plugin: they configure `config/search.php` and use `Gaffer\Search` (see
 Gaffer's `gaffer-search` skill). What exactly is public is in `API.md`; `api.txt` is its
