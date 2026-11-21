@@ -14,7 +14,7 @@ use GafferSearch\Support\ConfigLocation;
  *    import that bypasses WordPress) leaves the index outdated without a log row; the documents
  *    found go into the update log, as `verify --fix` does, and their number is reported.
  *  - **served files:** a probe file in each folder the plugin protects (index files, endpoint
- *    configs, snapshots), fetched over HTTP like a visitor. The deny `.htaccess` only covers
+ *    configs), fetched over HTTP like a visitor. The deny `.htaccess` only covers
  *    Apache and LiteSpeed: on nginx without its rule an index (hidden documents too) downloads.
  *
  * Results are options (not autoloaded), read by Engine::status() (feature `health_checks`).
@@ -152,7 +152,6 @@ final class HealthCheck
             (string) $this->settings->get('index_dir'),
             dirname(ConfigLocation::forContentDir(WP_CONTENT_DIR, get_current_blog_id())),
             ConfigLocation::dirForContentDir(WP_CONTENT_DIR),
-            (string) $this->settings->snapshotDir(),
         ])));
     }
 

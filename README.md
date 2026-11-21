@@ -10,7 +10,7 @@ tokens, so a searchbar or a filtered shop page stays fast on large catalogs.
 - Updates per product a few seconds after a change; full rebuilds on a schedule or with WP-CLI.
 - Multisite (one config and index per site) and WPML (one index per language).
 - Server-rendered archives that the browser enhances: the same form works without JavaScript.
-- Several web servers: local indexes, full rebuilds shared as snapshots.
+- Several web servers: each keeps its own index files on local disk.
 
 ## Requirements
 

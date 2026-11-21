@@ -11,10 +11,10 @@ use WP_CLI;
 
 /**
  * `wp gaffer-search rebuild [<index>]` — rebuild one index, or every registered index, in full: every
- * language's file, then (with GAFFER_SEARCH_SNAPSHOT_DIR) published for the other web servers. For a
+ * language's file. For a
  * system cron instead of WP-cron, and after a deploy. Every index is attempted; the exit code
- * (docs/hosting.md): 0 every index built, 1 one failed, 2 one skipped (a build already running,
- * here or on another server) or no index defined.
+ * (docs/hosting.md): 0 every index built, 1 one failed, 2 one skipped (a build already running)
+ * or no index defined.
  *
  * @internal Not part of the public API (see API.md): may change in any version.
  */
@@ -80,12 +80,9 @@ final class RebuildCommand
         $start = microtime(true);
         try {
             $count = $this->index->build($name)[$name] ?? 0;
-        } catch (IndexBusyException $e) {
-            // Not a failure: with every server's crontab running it, one builds and the others
-            // import its result on their next `wp gaffer-search update`.
-            WP_CLI::warning($e->elsewhere
-                ? "{$name}: already being rebuilt on another server; skipped."
-                : "{$name}: already being rebuilt; skipped.");
+        } catch (IndexBusyException) {
+            // Not a failure: the running build reads the same content.
+            WP_CLI::warning("{$name}: already being rebuilt; skipped.");
 
             return self::SKIPPED;
         } catch (\Throwable $e) {

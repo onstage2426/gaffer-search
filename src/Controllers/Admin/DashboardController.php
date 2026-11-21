@@ -90,8 +90,8 @@ class DashboardController
             $counts = $this->index->build($name);
             delete_transient('gaffer_search_cron_error_' . $name);
             wp_send_json_success(['counts' => $counts]);
-        } catch (IndexBusyException $e) {
-            wp_send_json_error($e->elsewhere ? 'This index is already being rebuilt on another server.' : 'This index is already being rebuilt.');
+        } catch (IndexBusyException) {
+            wp_send_json_error('This index is already being rebuilt.');
         } catch (\Throwable $e) {
             wp_send_json_error($e->getMessage());
         }

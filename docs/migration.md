@@ -5,6 +5,15 @@ to find the affected code, what to do.
 
 ## Unreleased
 
+### Several web servers build by themselves (`GAFFER_SEARCH_SNAPSHOT_DIR` is gone)
+
+- Full rebuilds are no longer shared between web servers through `GAFFER_SEARCH_SNAPSHOT_DIR`
+  (published generations, a rebuild lock in the database): each server builds and updates its
+  own copy (`GAFFER_SEARCH_INDEX_DIR`). The constant does nothing now. Find:
+  `grep -n GAFFER_SEARCH_SNAPSHOT_DIR wp-config.php`; remove the line, delete the snapshot folder,
+  and run `wp gaffer-search rebuild` from every server's crontab (`docs/hosting.md`, "Several web
+  servers"). A single server changes nothing.
+
 ## v0.2.0 (2026-11-21)
 
 ### A search that couldn't run says so (nothing to change in a theme)

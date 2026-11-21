@@ -78,17 +78,6 @@ class SettingsService
         return $this->cache;
     }
 
-    /**
-     * Where full rebuilds are published for the other web servers (GAFFER_SEARCH_SNAPSHOT_DIR: shared
-     * storage, one subfolder per site); null on a single server.
-     */
-    public function snapshotDir(): ?string
-    {
-        return defined('GAFFER_SEARCH_SNAPSHOT_DIR') && is_string(GAFFER_SEARCH_SNAPSHOT_DIR) && GAFFER_SEARCH_SNAPSHOT_DIR !== ''
-            ? untrailingslashit(GAFFER_SEARCH_SNAPSHOT_DIR) . '/' . get_current_blog_id()
-            : null;
-    }
-
     public function searchSecret(): string
     {
         if ($this->searchSecret !== null) {

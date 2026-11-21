@@ -11,9 +11,4 @@ namespace GafferSearch\Services;
  */
 final class IndexBusyException extends \RuntimeException
 {
-    /** @param bool $elsewhere Another web server is building it (its result arrives as a snapshot). */
-    public function __construct(string $message, public readonly bool $elsewhere = false)
-    {
-        parent::__construct($message);
-    }
 }

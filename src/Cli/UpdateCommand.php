@@ -11,9 +11,8 @@ use GafferSearch\Services\UpdateQueue;
 use WP_CLI;
 
 /**
- * `wp gaffer-search update [<index>]` — bring this server's indexes up to date: copy in a full rebuild
- * another server published (GAFFER_SEARCH_SNAPSHOT_DIR), then apply every change in the update log since
- * this server's position. Run it every minute from each web server's system cron
+ * `wp gaffer-search update [<index>]` — bring this server's indexes up to date: apply every change in
+ * the update log since this server's position. Run it every minute from each web server's system cron
  * (`* * * * * wp gaffer-search update --url=…`): WP-cron events live in the shared database, so only one
  * server would run them. Quiet when there's nothing to do; exits non-zero when an update fails.
  *
@@ -27,7 +26,7 @@ final class UpdateCommand
     ) {}
 
     /**
-     * Apply the update log (and a rebuild another server published) to this server's indexes.
+     * Apply the update log to this server's indexes.
      *
      * ## OPTIONS
      *
@@ -52,7 +51,6 @@ final class UpdateCommand
                 do {
                     $result = $this->index->applyUpdates($name);
                     $done   = array_filter([
-                        $result['imported'] ? 'copied the published rebuild' : null,
                         $result['rebuilt'] ? 'rebuilt (its position was behind the update log, or in another one: a copied database)' : null,
                         $result['updated'] + $result['deleted'] > 0 ? "{$result['updated']} updated, {$result['deleted']} removed" : null,
                     ]);

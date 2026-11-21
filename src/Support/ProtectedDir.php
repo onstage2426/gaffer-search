@@ -5,7 +5,7 @@ declare(strict_types=1);
 namespace GafferSearch\Support;
 
 /**
- * A folder of the plugin's own files (index files, endpoint configs, snapshots) that the web
+ * A folder of the plugin's own files (index files, endpoint configs) that the web
  * server must not serve: an index holds every stored document, also the ones a token hides. The
  * folder gets an Apache deny rule and an index file against directory listings; on nginx (which
  * ignores .htaccess) the folder has to be blocked in the server config, or kept outside the web

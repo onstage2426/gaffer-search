@@ -191,7 +191,7 @@ final class IndexLifecycleTest extends TestCase
         }
     }
 
-    /** @return array{position: int, generation: int, log: ?string} */
+    /** @return array{position: int, log: ?string} */
     private function state(): array
     {
         $state = (new \ReflectionMethod($this->service, 'readState'))->invoke($this->service, self::NAME);

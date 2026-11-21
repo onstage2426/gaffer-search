@@ -42,8 +42,7 @@ class Bootstrap
 
     /**
      * Remove everything the plugin made, on every site (uninstall.php): scheduled jobs, index
-     * files with their versions, labels, positions and temp files, this server's snapshot
-     * folder, the update log table, the options and transients, the updater's state and caches, and the
+     * files with their versions, labels, positions and temp files, the update log table, the options and transients, the updater's state and caches, and the
      * endpoint configs. Other web servers keep their own index folders
      * (GAFFER_SEARCH_INDEX_DIR) until they are cleaned up by hand.
      */
@@ -54,9 +53,7 @@ class Bootstrap
 
         self::onSites(true, function (int $site) use ($wpdb): void {
             $settings = new SettingsService();
-            foreach ([ (string) $settings->get('index_dir'), (string) $settings->snapshotDir()] as $dir) {
-                self::removeOwnFiles($dir);
-            }
+            self::removeOwnFiles( (string) $settings->get('index_dir'));
             (new UpdateQueue())->drop();
             $wpdb->query( // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery,WordPress.DB.DirectDatabaseQuery.NoCaching
                 "DELETE FROM {$wpdb->options} WHERE option_name LIKE 'gaffer\\_search\\_%' OR option_name LIKE '\\_transient\\_gaffer\\_search\\_%' OR option_name LIKE '\\_transient\\_timeout\\_gaffer\\_search\\_%'",
@@ -314,9 +311,8 @@ class Bootstrap
         try {
             $this->index->build($name);
             delete_transient('gaffer_search_cron_error_' . $name);
-        } catch (IndexBusyException $e) {
-            // Built on another server: this one imports that build with its next update.
-            if ($retry !== null && !$e->elsewhere) {
+        } catch (IndexBusyException) {
+            if ($retry !== null) {
                 $retry();
             }
         } catch (\Throwable $e) {

@@ -8,7 +8,7 @@ and use `Gaffer\Search`, and Gaffer talks to the plugin through the engine contr
 | Area | Items | Documented in |
 |---|---|---|
 | The engine contract | the object `apply_filters('gaffer_search_engine', null, 1)` returns: its methods, the definitions and requests they take, the responses they give; the endpoint's parameters, response and error codes (the browser side) | `docs/contract.md`, held by `tests/contract/` |
-| Hosting | the WP-CLI commands `wp gaffer-search rebuild`, `update`, `verify`, `describe`, `status` (arguments, exit codes) and the `wp-config.php` constants / environment `GAFFER_SEARCH_INDEX_DIR`, `GAFFER_SEARCH_SNAPSHOT_DIR`, `GAFFER_SEARCH_CONFIG_DIR` | `docs/hosting.md` |
+| Hosting | the WP-CLI commands `wp gaffer-search rebuild`, `update`, `verify`, `describe`, `status` (arguments, exit codes) and the `wp-config.php` constants / environment `GAFFER_SEARCH_INDEX_DIR`, `GAFFER_SEARCH_CONFIG_DIR` | `docs/hosting.md` |
 
 Everything else is internal and may change in any version: every class (`@internal`, checked by
 `tests/ApiTest.php`), every `gaffer_search_*()` function, the hooks the plugin uses itself, the

@@ -11,7 +11,6 @@ use GafferSearch\Builders\IndexBuilderInterface;
 use GafferSearch\Support\IndexSlug;
 use GafferSearch\Support\Labels;
 use GafferSearch\Support\ProtectedDir;
-use GafferSearch\Support\SharedLock;
 use GafferSearch\Support\Requirements;
 use GafferSearch\Support\Language\Languages;
 use GafferSearch\Support\SearchRunner;
@@ -53,10 +52,8 @@ class IndexService
                 $counts[$n] = 0;
                 // Every language's lock before the first file: a second build is refused before it
                 // builds anything, also while this one is on a later language.
-                $locks  = $this->acquireLocks($n);
-                $shared = null;
+                $locks = $this->acquireLocks($n);
                 try {
-                    $shared = $this->acquireSharedLock($n);
                     // Everything this build reads is read after this moment: a full rebuild
                     // requested before it is done by it (ChangeTracker::schedule(), satisfiedBy()).
                     $started = microtime(true);
@@ -71,14 +68,10 @@ class IndexService
                     }
                     set_transient("gaffer_search_build_duration_{$n}", round(microtime(true) - $start, 4), MONTH_IN_SECONDS);
                     $this->recordSignature($n, $this->signature($n), $started);
-                    $generation = $this->settings->snapshotDir() !== null ? $this->publishSnapshot($n, $position) : 0;
-                    $this->writeState($n, ['position' => $position, 'generation' => $generation, 'log' => $this->queue->id()]);
+                    $this->writeState($n, ['position' => $position, 'log' => $this->queue->id()]);
                     // A full build from WP-CLI or the dashboard clears an earlier failure too.
                     delete_transient('gaffer_search_cron_error_' . $n);
                 } finally {
-                    if ($shared !== null) {
-                        SharedLock::release($shared);
-                    }
                     $this->releaseLocks($locks);
                 }
             }
@@ -95,12 +88,10 @@ class IndexService
     /**
      * Bring this server's copy of an index up to date with the update log (UpdateQueue):
      *
-     *  1. With GAFFER_SEARCH_SNAPSHOT_DIR, a full rebuild newer than this server's copy (built on another
-     *     server) is copied in first, with the log position it was built at.
-     *  2. A copy whose position is older than the pruned part of the log has missed changes: it
+     *  1. A copy whose position is older than the pruned part of the log has missed changes: it
      *     is rebuilt in full. So is one whose position was recorded in another log (another ID:
      *     the database was copied from another environment) or lies past the log's head.
-     *  3. Up to $limit log rows after the position: those documents are rebuilt from the database
+     *  2. Up to $limit log rows after the position: those documents are rebuilt from the database
      *     — in every language's file, each with the site switched to that language — the ones the
      *     builder returns upserted, the rest deleted (deleted, unpublished, or in another
      *     language: a post ID is in one language's file only). The labels file is rewritten when
@@ -111,26 +102,18 @@ class IndexService
      * behind the pruned part (which rebuilt it in full every day).
      * Holds every language's build lock: a build and an update never write at the same time.
      *
-     * @return array{updated: int, deleted: int, remaining: int, imported: bool, rebuilt: bool} remaining: log rows still after the position
+     * @return array{updated: int, deleted: int, remaining: int, rebuilt: bool} remaining: log rows still after the position
      * @throws IndexBusyException When the index is being rebuilt on this server.
      * @throws \RuntimeException  When the server lacks a requirement (Requirements).
      */
     public function applyUpdates(string $name, int $limit = 1000): array
     {
         Requirements::assertMet();
-        $result   = ['updated' => 0, 'deleted' => 0, 'remaining' => 0, 'imported' => false, 'rebuilt' => false];
-        $manifest = $this->snapshotManifest($name);
-        $state    = $this->readState($name);
+        $result = ['updated' => 0, 'deleted' => 0, 'remaining' => 0, 'rebuilt' => false];
+        $state  = $this->readState($name);
 
         $locks = $this->acquireLocks($name);
         try {
-            if ($manifest !== null && ($state === null || !$this->isBuilt($name) || $manifest['generation'] > $state['generation'])
-                && $this->snapshotComplete($name, $manifest['generation'])) {
-                $this->importSnapshot($name, $manifest['generation']);
-                $state = ['position' => $manifest['position'], 'generation' => $manifest['generation'], 'log' => $this->queue->id()];
-                $this->writeState($name, $state);
-                $result['imported'] = true;
-            }
             if (!$this->isBuilt($name)) {
                 // Nothing to update: the first build reads everything.
                 return $result;
@@ -254,22 +237,22 @@ class IndexService
     }
 
     /**
-     * This server's position in the update log, the ID of that log (UpdateQueue::id(); null in a
-     * state written before logs had one) and the snapshot generation its files come from.
+     * This server's position in the update log and the ID of that log (UpdateQueue::id(); null
+     * in a state written before logs had one). Older states also hold a `generation`: ignored.
      *
-     * @return array{position: int, generation: int, log: ?string}|null null: never recorded (no build since)
+     * @return array{position: int, log: ?string}|null null: never recorded (no build since)
      */
     private function readState(string $name): ?array
     {
         $raw  = @file_get_contents($this->statePath($name)); // phpcs:ignore WordPress.PHP.NoSilencedErrors.Discouraged,WordPress.WP.AlternativeFunctions.file_get_contents_file_get_contents
         $data = is_string($raw) ? json_decode($raw, true) : null;
-        return is_array($data) && isset($data['position'], $data['generation'])
-            ? ['position' => (int) $data['position'], 'generation' => (int) $data['generation'], 'log' => is_string($data['log'] ?? null) ? $data['log'] : null]
+        return is_array($data) && isset($data['position'])
+            ? ['position' => (int) $data['position'], 'log' => is_string($data['log'] ?? null) ? $data['log'] : null]
             : null;
     }
 
     /**
-     * @param array{position: int, generation: int, log: ?string} $state
+     * @param array{position: int, log: ?string} $state
      * @throws \RuntimeException When the file can't be written: the build or update fails, and is tried again.
      */
     private function writeState(string $name, array $state): void
@@ -289,126 +272,6 @@ class IndexService
     private function statePath(string $name): string
     {
         return $this->indexDir() . '/' . $this->fileSlug($name, null) . '.state.json';
-    }
-
-    /**
-     * Copy a full rebuild into the snapshot folder for the other servers, as generation n + 1,
-     * and announce it (option `gaffer_search_snapshot_{name}`: generation, log position, time). The
-     * previous generation stays, for a server that is copying it right now; older ones go.
-     *
-     * @return int The new generation.
-     * @throws \RuntimeException When the snapshot folder can't be created.
-     */
-    private function publishSnapshot(string $name, int $position): int
-    {
-        $dir = (string) $this->settings->snapshotDir();
-        if (!ProtectedDir::ensure($dir)) {
-            throw new \RuntimeException("Cannot create the snapshot folder {$dir}."); // phpcs:ignore WordPress.Security.EscapeOutput.ExceptionNotEscaped
-        }
-        // From the database, not the option cache: another server may have published since
-        // this process read it (a long WP-CLI run).
-        wp_cache_delete("gaffer_search_snapshot_{$name}", 'options');
-        wp_cache_delete('notoptions', 'options');
-        $generation = ($this->snapshotManifest($name)['generation'] ?? 0) + 1;
-
-        foreach (Languages::codes() as $language) {
-            $local  = $this->pathFor($name, $language);
-            $target = $this->snapshotPath($name, $language, $generation);
-            $index  = new Index($local, readonly: true);
-            $index->snapshotTo($target);
-            $index->close();
-            if (is_file(Labels::path($local))) {
-                copy(Labels::path($local), Labels::path($target));
-            }
-            foreach (glob($dir . '/' . $this->fileSlug($name, $language) . '.g*.db') ?: [] as $old) {
-                if (preg_match('/\.g(\d+)\.db$/', $old, $m) === 1 && (int) $m[1] < $generation - 1) {
-                    Index::remove($old);
-                    wp_delete_file(Labels::path($old));
-                }
-            }
-        }
-
-        update_option("gaffer_search_snapshot_{$name}", ['generation' => $generation, 'position' => $position, 'time' => time()], false);
-        return $generation;
-    }
-
-    /**
-     * Replace this server's files with a published generation (the caller holds the locks).
-     * Index::install() copies each file next to its target, checks that it is a whole index (a
-     * copy cut short on a full disk is refused), and publishes it like a rebuild, so readers see
-     * the old file or the new one, never part of either.
-     *
-     * @throws \RuntimeException When a file of the generation is missing.
-     */
-    private function importSnapshot(string $name, int $generation): void
-    {
-        $dir = $this->indexDir();
-        ProtectedDir::ensure($dir);
-        foreach (Languages::codes() as $language) {
-            $source = $this->snapshotPath($name, $language, $generation);
-            $local  = $this->pathFor($name, $language);
-            if (!Index::exists($source)) {
-                throw new \RuntimeException("Snapshot generation {$generation} of index '{$name}' is missing in {$source}."); // phpcs:ignore WordPress.Security.EscapeOutput.ExceptionNotEscaped
-            }
-            Index::install($source, $local);
-            if (is_file(Labels::path($source))) {
-                $tmp = Labels::path($local) . '.tmp-' . bin2hex(random_bytes(4));
-                copy(Labels::path($source), $tmp);
-                rename($tmp, Labels::path($local)); // phpcs:ignore WordPress.WP.AlternativeFunctions.rename_rename -- atomic replace
-            }
-            unset($this->indexes["{$name}|{$language}"]);
-        }
-    }
-
-    /** @return array{generation: int, position: int, time: int}|null The last published full rebuild; null without GAFFER_SEARCH_SNAPSHOT_DIR or before the first. */
-    private function snapshotManifest(string $name): ?array
-    {
-        if ($this->settings->snapshotDir() === null) {
-            return null;
-        }
-        $raw = get_option("gaffer_search_snapshot_{$name}");
-        return is_array($raw) && isset($raw['generation'], $raw['position'])
-            ? ['generation' => (int) $raw['generation'], 'position' => (int) $raw['position'], 'time' => (int) ($raw['time'] ?? 0)]
-            : null;
-    }
-
-    private function snapshotPath(string $name, ?string $language, int $generation): string
-    {
-        return $this->settings->snapshotDir() . '/' . $this->fileSlug($name, $language) . ".g{$generation}.db";
-    }
-
-    /**
-     * Whether a published generation has every language's file (file stats only): one published
-     * before a language was added can't be imported; a build makes the next generation.
-     */
-    private function snapshotComplete(string $name, int $generation): bool
-    {
-        foreach (Languages::codes() as $language) {
-            if (!file_exists($this->snapshotPath($name, $language, $generation))) {
-                return false;
-            }
-        }
-        return true;
-    }
-
-    /**
-     * With snapshots, the full-rebuild lock of an index across this site's servers (SharedLock):
-     * every server can start a rebuild (its cron, WP-cron, the dashboard), one builds and
-     * publishes, the others import its generation.
-     *
-     * @return string|null The lock's key to release; null without snapshots (no lock).
-     * @throws IndexBusyException When another server is rebuilding the index.
-     */
-    private function acquireSharedLock(string $name): ?string
-    {
-        if ($this->settings->snapshotDir() === null) {
-            return null;
-        }
-        $key = 'build|' . get_current_blog_id() . '|' . $name;
-        if (!SharedLock::acquire($key)) {
-            throw new IndexBusyException("Index '{$name}' is already being rebuilt on another server.", elsewhere: true); // phpcs:ignore WordPress.Security.EscapeOutput.ExceptionNotEscaped
-        }
-        return $key;
     }
 
     /**
@@ -510,8 +373,7 @@ class IndexService
     /**
      * The registered indexes a request should have built (Bootstrap schedules them, and the job
      * asks again before it builds): one that isn't built on this server (a new index, a deleted
-     * file, a language added; with GAFFER_SEARCH_SNAPSHOT_DIR only when there's no whole
-     * published generation to copy in, which `update` does), and one whose builder changed
+     * file, a language added), and one whose builder changed
      * (changedBuilders()). With $backOff, not one whose last scheduled build failed less than an
      * hour ago: a build that fails isn't started again on every request.
      *
@@ -529,7 +391,7 @@ class IndexService
                 // A stat, not Index::exists() (which opens the file): this runs on every request.
                 $built = $built && file_exists($this->pathFor($name, $language));
             }
-            if ($built ? !$this->changed($name) : $this->importable($name)) {
+            if ($built && !$this->changed($name)) {
                 continue;
             }
             if ($backOff && $this->failedRecently($name)) {
@@ -538,13 +400,6 @@ class IndexService
             $names[] = $name;
         }
         return $names;
-    }
-
-    /** With snapshots: a published generation this server can copy in instead of building. */
-    private function importable(string $name): bool
-    {
-        $manifest = $this->snapshotManifest($name);
-        return $manifest !== null && $this->snapshotComplete($name, $manifest['generation']);
     }
 
     /** The last scheduled build or update of the index failed less than an hour ago. */

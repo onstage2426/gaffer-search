@@ -95,10 +95,10 @@ BM25, facets; only its copy in `vendor/` is in this repo) and serves searches fr
   `documentsFor()` per language under the build lock, upsert + delete. Full rebuilds stay for
   hierarchical term structure changes, other sites' changes, changed builders, a position
   behind the pruned log, and the `rebuildInterval` schedule. Several servers: `GAFFER_SEARCH_INDEX_DIR`
-  (local) + `GAFFER_SEARCH_SNAPSHOT_DIR` (full builds published as generations, imported by the others).
+  (local disk); each server builds and updates its own copy.
 - Tokens never expire unless signed with `ttl` (→ `expires` claim, `token_expired`, private
   caching): public cached pages must keep working.
-- Every folder the plugin writes (indexes, snapshots, endpoint configs) gets `ProtectedDir`'s
+- Every folder the plugin writes (indexes, endpoint configs) gets `ProtectedDir`'s
   deny `.htaccess` + `index.php`: an index holds every stored document, also hidden ones.
 - Hooks are all `gaffer_search_…`; per-index hooks get the index name as an argument.
 - A plugin update must never undefine a theme's index or change what an existing site shows.

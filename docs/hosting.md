@@ -49,11 +49,11 @@ uploads folder).
 **Disk space: twice the index.** A rebuild publishes the new file next to the old one
 (`{index}.db.v-…`, `{index}.db` a symlink to the current one) and keeps the previous version, also
 on a single server: searches that opened it while the rebuild finished still read it. It's deleted
-by the next rebuild. (The snapshot generations of several servers, below, are separate.)
+by the next rebuild.
 
 **The index folder must not be served.** An index file holds every stored document, also the
 ones a token hides (customer groups, hidden products). The plugin puts a deny `.htaccess` and an
-`index.php` in every folder it writes (index files, snapshots, endpoint configs), which covers
+`index.php` in every folder it writes (index files, endpoint configs), which covers
 Apache and LiteSpeed. **nginx ignores `.htaccess`**: block the folders in the server config, or
 keep the indexes outside the web root with `GAFFER_SEARCH_INDEX_DIR`:
 
@@ -194,13 +194,13 @@ In production, set `define('DISABLE_WP_CRON', true);` and run WordPress's cron f
 0 3 * * *  wp gaffer-search rebuild --url=https://shop.example --path=/var/www/html
 ```
 
-- `wp gaffer-search update [<index>]` — apply every logged change since this server's position (and,
-  with snapshots, copy in a newer full rebuild first). Quiet when there's nothing to do; exits
+- `wp gaffer-search update [<index>]` — apply every logged change since this server's position.
+  Quiet when there's nothing to do; exits
   non-zero when an update fails.
 - `wp gaffer-search rebuild [<index>]` — a full rebuild of every language's file. Every index is
   attempted; exits **0** when every index was built, **1** when a build failed (the old index
   stays; the error is in the output and `status()`), **2** when one was skipped (a build already
-  running, here or on another server) or no index is defined in that request (the theme isn't
+  running) or no index is defined in that request (the theme isn't
   active). A failure wins over a skip.
 - `wp gaffer-search status [--format=json]` — every defined index for monitoring: built,
   documents, a build running, the last build's error, changes waiting. Exits **1** when an index
@@ -232,29 +232,15 @@ written over a network file system (NFS, EFS, SMB): its locking doesn't work the
 corrupts files. In `wp-config.php` on every server:
 
 ```php
-define('GAFFER_SEARCH_INDEX_DIR', '/var/lib/gaffer-search');      // local disk, the same path on every server
-define('GAFFER_SEARCH_SNAPSHOT_DIR', '/mnt/shared/gaffer-search'); // shared storage (NFS is fine here: files are only copied)
+define('GAFFER_SEARCH_INDEX_DIR', '/var/lib/gaffer-search'); // local disk, the same path on every server
 ```
 
 - **Changes:** every server applies the update log itself, from its own position: run
   `wp gaffer-search update` every minute **on every server** (WP-cron events live in the shared
   database, so only one server would get them).
-- **Full rebuilds** are built once: the server that builds (the scheduled `rebuildInterval`, a
-  rebuild after a changed builder, `wp gaffer-search rebuild`) publishes the result to
-  `GAFFER_SEARCH_SNAPSHOT_DIR` as a new generation, with the log position it was built at. Every other
-  server copies it on its next `wp gaffer-search update` and applies the log from there. The previous
-  generation is kept for a server that is still copying it; older ones are deleted.
-- **One full rebuild at a time across servers:** a rebuild takes a lock in the shared database
-  (MySQL's `GET_LOCK()`, released when the process ends, also when it's killed), so a
-  `wp gaffer-search rebuild` in every server's crontab is fine: one server builds, the others skip it
-  with a warning (exit code 2) and copy its result. The dashboard says "already being rebuilt on
-  another server". A database proxy that sends queries to different servers (a Galera cluster
-  without a single writer) doesn't share `GET_LOCK()`: run the rebuild on one server there.
-- **A new server** gets its indexes the same way, on its first `wp gaffer-search update`.
-- **A server that was down** for longer than the log keeps rows (a day) copies the latest
-  published generation, or rebuilds when there's none newer.
-- `GAFFER_SEARCH_INDEX_DIR` and `GAFFER_SEARCH_SNAPSHOT_DIR` get a subfolder per site (`/var/lib/gaffer-search/1`).
-  Without `GAFFER_SEARCH_SNAPSHOT_DIR` every server rebuilds by itself.
+- **Full rebuilds** run on every server by itself: put `wp gaffer-search rebuild` in each one's
+  crontab (a new server builds its indexes on its first `update`).
+- `GAFFER_SEARCH_INDEX_DIR` gets a subfolder per site (`/var/lib/gaffer-search/1`).
 - Each server writes its own endpoint config (`wp-content/gaffer-search/`, see "Endpoint URLs
   and config"); it's rewritten on the next request whenever its content differs from the
   database, so a settings change or a rotated secret reaches every server.

@@ -23,4 +23,3 @@ wp gaffer-search verify
 # wp-config.php constants and the server environment
 GAFFER_SEARCH_CONFIG_DIR
 GAFFER_SEARCH_INDEX_DIR
-GAFFER_SEARCH_SNAPSHOT_DIR
