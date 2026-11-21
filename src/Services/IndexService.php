@@ -268,12 +268,20 @@ class IndexService
             : null;
     }
 
-    /** @param array{position: int, generation: int, log: ?string} $state */
+    /**
+     * @param array{position: int, generation: int, log: ?string} $state
+     * @throws \RuntimeException When the file can't be written: the build or update fails, and is tried again.
+     */
     private function writeState(string $name, array $state): void
     {
         $path = $this->statePath($name);
         $tmp  = $path . '.tmp-' . bin2hex(random_bytes(4));
-        file_put_contents($tmp, (string) wp_json_encode($state)); // phpcs:ignore WordPress.WP.AlternativeFunctions.file_system_operations_file_put_contents
+        // A failed write (a full disk) keeps the previous state rather than an empty one, which
+        // would read as "no position" and rebuild in full.
+        if (file_put_contents($tmp, (string) wp_json_encode($state)) === false) { // phpcs:ignore WordPress.WP.AlternativeFunctions.file_system_operations_file_put_contents
+            @unlink($tmp); // phpcs:ignore WordPress.PHP.NoSilencedErrors.Discouraged
+            throw new \RuntimeException("Gaffer Search couldn't write {$path}."); // phpcs:ignore WordPress.Security.EscapeOutput.ExceptionNotEscaped
+        }
         rename($tmp, $path); // phpcs:ignore WordPress.WP.AlternativeFunctions.rename_rename -- atomic replace
     }
 
