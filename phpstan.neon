@@ -7,7 +7,7 @@ parameters:
         - src
     excludePaths:
         - vendor
-        - src/WpHubUpdater
+        - src/WpHubUpdater (?)
     scanFiles:
         - stubs/wp-cli.stub.php
         - vendor/php-stubs/woocommerce-stubs/woocommerce-stubs.php
