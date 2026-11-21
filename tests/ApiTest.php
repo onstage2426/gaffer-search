@@ -80,7 +80,7 @@ final class ApiTest extends TestCase
 
         $lines[] = '';
         $lines[] = '# Endpoint error codes';
-        preg_match_all('/gaffer_search_error\(\s*\'([a-z_]+)\'/', self::sources("{$root}/endpoints"), $codes);
+        preg_match_all('/->fail\(\s*\'([a-z_]+)\'/', (string) file_get_contents("{$root}/src/Support/SearchEndpoint.php"), $codes);
         $codes = array_unique($codes[1]);
         sort($codes);
         $lines[] = implode(', ', $codes);

@@ -12,7 +12,7 @@ bundles or calls Gaffer (Gaffer hands it data and closures). `design.md` has the
 
 The plugin builds indexes from WordPress content with the library `onstage2426/fuzor` (SQLite,
 BM25, facets; only its copy in `vendor/` is in this repo) and serves searches from
-`endpoints/search.php` **without booting WordPress**, authorized by signed tokens.
+`endpoints/search.php` (`Support\SearchEndpoint`) **without booting WordPress**, authorized by signed tokens.
 
 ## Where things are
 
