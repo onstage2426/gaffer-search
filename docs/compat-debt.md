@@ -14,9 +14,6 @@ that PHP 8.5/8.6, WordPress 7.x or WooCommerce 11.x deprecates.
 
 Start the next audit here; remove an item when it's done or decided.
 
-- **Gaffer's side of this round** (2026-11-21): Gaffer reads `search()`'s `code` (feature
-  `search_codes`) and `status()`'s `drift`/`served` (feature `health_checks`), and `doctor --wp`
-  searches the endpoint over HTTP like a visitor. Tracked in Gaffer's `docs/compat-debt.md`.
 - **Secret rotation has no grace period** (2026-11-15, deferred). Rotating the token secret
   makes every cached page's searches fail (`invalid_token`) until the page cache is cleared.
   Verifying against the previous secret for a day would cost a second option and a second
@@ -49,8 +46,8 @@ Start the next audit here; remove an item when it's done or decided.
 - **SQLite 3.46.0 or newer** (Fuzor's `MIN_SQLITE_VERSION`, 2026-11-15). Debian 13, RHEL 10 and
   Ubuntu 26.04 ship 3.46.1; Ubuntu 24.04 ships 3.45.1, where the plugin refuses to activate.
   Builds check it (`Requirements`); the endpoint doesn't: a web PHP linked to an older SQLite
-  than the CLI's fails every search with `search_failed` while WP-CLI works. Gaffer's planned
-  HTTP search in `doctor --wp` would show it.
+  than the CLI's fails every search with `search_failed` while WP-CLI works; Gaffer's
+  `doctor --wp` searches over HTTP and shows it.
 - **PHP 8.5, 64-bit, `pdo_sqlite`, `mbstring`** (2026-11-15). PHP 8.5 deprecates
   `PDO::sqliteCreateFunction()` and its siblings (removal in 9.0); neither the plugin nor Fuzor
   calls them.
@@ -86,8 +83,9 @@ Start the next audit here; remove an item when it's done or decided.
 
 - **The browser side** (2026-11-21). Gaffer's search JavaScript writes the request keys and reads
   the answer keys and error codes (`contract.md`, "The browser side"). The endpoint cases freeze
-  the plugin's half; Gaffer's JavaScript is tested against its own stand-ins, not these
-  answers. Gaffer could replay the endpoint cases in its JavaScript tests.
+  the plugin's half, and Gaffer's JavaScript tests replay them; what the JavaScript sends is
+  checked against the parameters the endpoint reads, but no case records a request the
+  JavaScript built. Still prose: the order of `sort[]` and how a form names `filter[…]`.
 
 ## Rules that follow from this
 
