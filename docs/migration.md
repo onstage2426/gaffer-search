@@ -5,6 +5,8 @@ to find the affected code, what to do.
 
 ## Unreleased
 
+## v0.3.0 (2026-11-21)
+
 ### No admin screens: everything is WP-CLI (nothing to change in a theme)
 
 - **Settings → Gaffer Search** and **Network Admin → Settings → Gaffer Search** are gone, and
