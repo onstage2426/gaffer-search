@@ -20,7 +20,14 @@ Start the next audit here; remove an item when it's done or decided.
   below it. The updater offers only a release's `gaffer-search.zip` (`Support\ReleaseAsset`):
   its fallback to the source zipball (no `vendor/`) would fatal every request, and a manual
   `wp plugin update` has no fatal-error rollback. The release workflow publishes only after the
-  upload (draft first): keep it that way.
+  upload (draft first): keep it that way. A failed check looks like "no update" to the updater:
+  the plugin records the last check that found the latest release and its error (`UpdateCheck`,
+  feature `update_checks`, 2026-11-22), and `status` and Gaffer's health line warn after 7 days.
+  Not covered by the backoff: GitHub's secondary limit (a 403 without `x-ratelimit-remaining: 0`)
+  and, without a token, 304s still count; both harmless at two checks a day.
+- **Conditional requests** (2026-11-22): the endpoint compares `If-None-Match` weakly (nginx's
+  gzip sends `W/"…"`). Where WP Rocket's root `.htaccess` drops the ETag, `If-Modified-Since`
+  gives the 304.
 - **Work that needs wp-admin** (2026-11-21): none left. The rebuild schedules and the index
   folder's deny files are synced on `admin_init` and by the daily health job.
 
