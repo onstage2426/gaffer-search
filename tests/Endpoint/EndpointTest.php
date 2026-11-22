@@ -87,6 +87,10 @@ final class EndpointTest extends TestCase
 
         [$status] = $this->get('search', $query, ['If-None-Match: ' . $headers['etag']]);
         self::assertSame(304, $status);
+
+        // A proxy that compresses the answer (nginx's gzip) sends it on as a weak ETag.
+        [$status] = $this->get('search', $query, ['If-None-Match: "other", W/' . $headers['etag']]);
+        self::assertSame(304, $status);
     }
 
     public function test_a_write_still_in_the_wal_changes_the_etag(): void

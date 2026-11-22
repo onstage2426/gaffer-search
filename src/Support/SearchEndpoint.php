@@ -203,7 +203,8 @@ final class SearchEndpoint
 
         $ifNoneMatch = trim( (string) ($this->server['HTTP_IF_NONE_MATCH'] ?? ''));
         if ($ifNoneMatch !== '') {
-            $tags = array_map(trim(...), explode(',', $ifNoneMatch));
+            // Weak comparison (RFC 9110): nginx makes the ETag weak (W/"…") when it compresses.
+            $tags = array_map(static fn(string $tag): string => (string) preg_replace('#^W/#', '', trim($tag)), explode(',', $ifNoneMatch));
             return in_array($etag, $tags, true) || in_array('*', $tags, true);
         }
         $ims = trim( (string) ($this->server['HTTP_IF_MODIFIED_SINCE'] ?? ''));
