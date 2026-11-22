@@ -331,13 +331,24 @@ final class ChangeTracker
         return $this->watches[$name];
     }
 
-    /** Run a hook callback without ever letting an error escape into the request that fired it. */
+    /**
+     * Run a hook callback without ever letting an error escape into the request that fired it. A
+     * change it failed to log would never reach the index (nothing waits, so nothing looks wrong
+     * until the daily sample happens to pick that post): every index is rebuilt instead.
+     */
     private function guard(callable $callback): void
     {
         try {
             $callback();
         } catch (\Throwable $e) {
-            error_log('Gaffer Search: change tracking failed: ' . $e->getMessage()); // phpcs:ignore WordPress.PHP.DevelopmentFunctions.error_log_error_log
+            error_log('Gaffer Search: change tracking failed, rebuilding: ' . $e->getMessage()); // phpcs:ignore WordPress.PHP.DevelopmentFunctions.error_log_error_log
+            try {
+                foreach ($this->registry->names() as $name) {
+                    self::schedule($name);
+                }
+            } catch (\Throwable) {
+                // Nothing more to do in the request that fired the hook.
+            }
         }
     }
 }

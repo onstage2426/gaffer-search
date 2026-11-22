@@ -173,6 +173,22 @@ final class IndexLifecycleTest extends TestCase
         self::assertEqualsCanonicalizing([1, 2, UpdateQueue::LABELS], $ids['cards'], 'a card may show the name, a descendant\'s its ancestors\'');
     }
 
+    public function test_a_change_tracking_failure_rebuilds_every_index(): void
+    {
+        $tracker  = new ChangeTracker(new IndexRegistry(), $this->queue);
+        $log      = self::dir() . '/tracking.log';
+        $previous = ini_set('error_log', $log);
+        try {
+            (new \ReflectionMethod($tracker, 'guard'))->invoke($tracker, static fn() => throw new \RuntimeException('database gone'));
+        } finally {
+            ini_set('error_log', (string) $previous);
+        }
+
+        self::assertStringContainsString('change tracking failed, rebuilding: database gone', (string) file_get_contents($log));
+        self::assertSame([[self::NAME]], array_column(array_filter(GafferSearchTestWordPress::$single, static fn(array $e): bool => $e['hook'] === ChangeTracker::REBUILD_HOOK), 'args'));
+        @unlink($log);
+    }
+
     public function test_a_definitions_problems_are_logged_once_per_change(): void
     {
         $log      = self::dir() . '/define.log';

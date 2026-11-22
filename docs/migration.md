@@ -5,6 +5,12 @@ to find the affected code, what to do.
 
 ## Unreleased
 
+### A change tracking couldn't log rebuilds the indexes (nothing to change in a theme)
+
+- When logging a content change failed (a database error in the hook), the change never reached
+  the index and nothing waited, so nothing looked wrong; only the daily sample could find it. Every
+  index of the site is now rebuilt a minute later, and the error is logged as before.
+
 ### `status()` says when the updater last found a release (nothing to change in a theme)
 
 - A failed update check (GitHub's rate limit, a moved repository, a release without its built
