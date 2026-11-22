@@ -3,7 +3,7 @@
 What a theme changes when it updates the plugin. Newest first. Each entry: what changed, how
 to find the affected code, what to do.
 
-## Unreleased
+## v0.3.1 (2026-11-22)
 
 ### The daily check re-syncs schedules and deny files (nothing to change in a theme)
 
