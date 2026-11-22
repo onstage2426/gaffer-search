@@ -227,7 +227,7 @@ final class SearchRunner
 
         return [
             'query'             => $raw->query,
-            'total'             => $raw->totalHits ?? $raw->hitsCount,
+            'total'             => $raw->totalHits,
             'offset'            => $offset,
             'limit'             => $options['limit'],
             'results'           => $results,
