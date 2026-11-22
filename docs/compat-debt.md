@@ -14,6 +14,47 @@ that PHP 8.5/8.6, WordPress 7.x or WooCommerce 11.x deprecates.
 
 Start the next audit here; remove an item when it's done or decided.
 
+- **Before the plugin's 1.0** (Gaffer's full-stack audit, 2026-11-22; Gaffer's Search API is
+  experimental until then and freezes with it). Decide in one cycle:
+  - `Search::count()`/`facet_counts()` (Gaffer) return 0/empty when the search couldn't run
+    (`code` set): null then; `count()` has no user (remove).
+  - `Counter` has no `attrs()`: a theme copies `endpoint`/`token` into `createCounter()` by hand.
+    Gaffer writes them; then the public `endpoint`/`token` on `Archive`, `Searchbar`, `Counter`
+    become internal (deprecate first: one site uses them).
+  - The JavaScript's `nl-NL`/EUR fallbacks (`helpers.js`) become the browser's locale and an
+    explicit currency.
+  - `problems()` refuses an index name over 64 characters (the update log's `index_name` is
+    `varchar(64)`: a longer name never takes in changes). Free now, constrained after 1.0.
+  - `gaffer_search_options` (autoloaded, unwritten since 0.3.0's admin screens): move a stored
+    `index_dir` out once (show it in `status`), drop the option and its hook.
+  - The endpoint's `?check=<site>` probe isn't in the contract and only a test calls it: remove.
+  - `api.txt` misses the response's `code` and the updater's `wp hu` commands; `API.md` names 5
+    commands, `api.txt` 8; exit codes and `status --format=json` aren't documented; `hosting.md`
+    tells hosts to delete the internal `hu_state-gaffer-search`.
+  - `contract.md` wording: `updates_checked` is "first read of `status()`", not "first run of
+    this version"; `served: null` means not checked or no folder in the web root;
+    `index_unknown` answers 503 for good. Every feature is ready to fold into the baseline after
+    those two wordings.
+  - Fuzor's warning text reaches sites (console, `initial()` JSON in cached pages, doctor
+    baselines) while Fuzor calls it unstable: prefix it or declare it free.
+- **Requests to libraries we own** (2026-11-22, none breaks anything there): Fuzor: throw on an
+  index file with missing info keys (`IndexFiles` opens with `@` today), promise an order for
+  facet values with equal counts. The updater library: an option that requires the release asset
+  (`ReleaseAsset` reads the internal `Reference->downloadUrl` and accepts only
+  `releases/download` URLs: a change there means no update is offered, which `update_checks`
+  shows after 7 days); document when `hu_request_update_result` runs.
+- **A health check that never ran reads as green** (2026-11-22): `drift_checked` is null before
+  the first daily check, and Gaffer can't tell "new" from "WP-cron never runs". A first-seen time
+  needs a contract wording change (`drift_checked` is documented as null before the first one).
+- **A reader that can't write the index folder** (2026-11-22, seen on a dev host where the CLI
+  and the web server are different users): a freshly published version has no `-wal`/`-shm`, and
+  SQLite can't open a WAL database read-only without creating them, so searches answer 503
+  `index_not_built` until a writer opens it. `hosting.md` already says to run the CLI as the web
+  server's user; a daily-check line when the folder isn't writable for the web server would show
+  it.
+- **Change tracking that fails** rebuilds every index a minute later (2026-11-22; before, the
+  change was only logged and the index stayed stale until the daily sample found it).
+
 - **The updater and GitHub** (2026-11-21, break-first audit). Releases come from GitHub's API
   without a token: 60 requests an hour per IP, about two checks a day per site; a 403/429 stores a
   backoff until the reset (`hu_ratelimit-gaffer-search`), so several sites on one server stay far
@@ -71,7 +112,10 @@ Start the next audit here; remove an item when it's done or decided.
   Fuzor major. A change still means: every search of the index fails until its rebuild is done
   (old files don't open), disk for two copies, and on a network every site at once.
 - **WooCommerce's product objects** (2026-11-21). Builders read prices, stock, SKU and rating
-  from `WC_Product` getters (never post meta). WooCommerce 11.2 skips `set_object_terms` when a
+  from `WC_Product` getters, except variations' `_stock_status` and `attribute_*` and images'
+  `_thumbnail_id`/`_wp_attached_file`, read from post meta in one query per batch
+  (`ProductIndexBuilder`, 2026-11-22: a storage move in WooCommerce would filter wrongly without
+  an error; the daily sample compares the documents). WooCommerce 11.2 skips `set_object_terms` when a
   product's terms didn't change (no change to track then); its per-request product object cache
   is flushed with each batch (`releaseBatch()`). Scheduled sales: WooCommerce saves the product
   when a sale starts or ends, which fires the hooks `ChangeTracker` listens to (not measured
