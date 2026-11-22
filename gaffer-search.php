@@ -21,6 +21,7 @@ require_once __DIR__ . "/vendor/autoload.php";
 
 use GafferSearch\Bootstrap;
 use GafferSearch\Support\ReleaseAsset;
+use GafferSearch\Support\UpdateCheck;
 use GafferSearch\WpHubUpdater\Plugin\PluginUpdater;
 
 $gaffer_search_updater = PluginUpdater::build("https://github.com/onstage2426/gaffer-search", __FILE__)
@@ -36,6 +37,8 @@ $gaffer_search_updater = PluginUpdater::build("https://github.com/onstage2426/ga
 // without the asset) has no vendor/ (and no generated updater), and installing it would take
 // the site down. A check that finds no built zip offers nothing.
 add_filter("hu_vcs_update_detection_strategies-gaffer-search", [ReleaseAsset::class, "strategies"]);
+// A check that can't reach the releases looks like "no update": status() says when one last did.
+UpdateCheck::register();
 
 $bootstrap = new Bootstrap(__FILE__);
 register_activation_hook(__FILE__, $bootstrap->activate(...));

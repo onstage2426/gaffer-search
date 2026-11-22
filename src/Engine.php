@@ -15,6 +15,7 @@ use GafferSearch\Services\SettingsService;
 use GafferSearch\Services\State;
 use GafferSearch\Services\Tokens;
 use GafferSearch\Support\FilterQuery;
+use GafferSearch\Support\UpdateCheck;
 
 /**
  * Contract 1: what Gaffer gets from apply_filters('gaffer_search_engine', null, 1). The
@@ -33,7 +34,7 @@ final class Engine
      *
      * @var list<string>
      */
-    private array $features = ['facet_stats', 'filter_groups', 'pending_updates', 'search_codes', 'health_checks'];
+    private array $features = ['facet_stats', 'filter_groups', 'pending_updates', 'search_codes', 'health_checks', 'update_checks'];
 
     private const array TYPES = ['products', 'posts'];
 
@@ -159,13 +160,15 @@ final class Engine
         return $problems;
     }
 
-    /** @return array<string, array{built: bool, documents: int, version: ?string, building: bool, error: ?string, pending: int, pending_since: ?int, drift: ?int, drift_checked: ?int, served: ?list<string>}> */
+    /** @return array<string, array{built: bool, documents: int, version: ?string, building: bool, error: ?string, pending: int, pending_since: ?int, drift: ?int, drift_checked: ?int, served: ?list<string>, updates_checked: int, update_error: ?string}> */
     public function status(): array
     {
         $service = $this->service();
         $stats   = $service->files()->stats();
         $status  = [];
         $served  = State::served();
+        $checked = UpdateCheck::checked();
+        $failed  = UpdateCheck::error();
         foreach ((new IndexRegistry())->names() as $name) {
             $drift         = State::drift($name);
             $error         = State::error($name);
@@ -181,6 +184,8 @@ final class Engine
                 'drift'         => $drift !== null ? $drift['differing'] : null,
                 'drift_checked' => $drift !== null ? $drift['time'] : null,
                 'served'        => $served,
+                'updates_checked' => $checked,
+                'update_error'    => $failed,
             ];
         }
 

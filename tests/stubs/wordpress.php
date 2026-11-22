@@ -117,6 +117,21 @@ function add_option(string $name, mixed $value = '', string $deprecated = '', mi
     return update_option($name, $value, $autoload);
 }
 
+function get_site_option(string $name, mixed $default = false): mixed
+{
+    return get_option($name, $default);
+}
+
+function update_site_option(string $name, mixed $value): bool
+{
+    return update_option($name, $value, false);
+}
+
+function delete_site_option(string $name): bool
+{
+    return delete_option($name);
+}
+
 function delete_option(string $name): bool
 {
     unset(GafferSearchTestWordPress::$options[$name]);

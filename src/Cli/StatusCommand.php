@@ -6,6 +6,7 @@ namespace GafferSearch\Cli;
 
 use GafferSearch\Engine;
 use GafferSearch\Support\Requirements;
+use GafferSearch\Support\UpdateCheck;
 use WP_CLI;
 
 /**
@@ -82,6 +83,11 @@ final class StatusCommand
         if (($assoc['format'] ?? 'table') !== 'json') {
             foreach ($problems as $problem) {
                 WP_CLI::warning($problem);
+            }
+            $checked = UpdateCheck::checked();
+            if ($checked < $now - UpdateCheck::STALE_DAYS * 86400) {
+                $error = UpdateCheck::error();
+                WP_CLI::warning('The updater last found the plugin\'s releases ' . human_time_diff($checked, $now) . ' ago' . ($error !== null ? " ({$error})" : '') . ': this site gets no plugin updates (docs/hosting.md, "Plugin updates").');
             }
         }
 

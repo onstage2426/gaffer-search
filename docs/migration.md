@@ -5,6 +5,13 @@ to find the affected code, what to do.
 
 ## Unreleased
 
+### `status()` says when the updater last found a release (nothing to change in a theme)
+
+- A failed update check (GitHub's rate limit, a moved repository, a release without its built
+  zip) looked like "no update": a site could stay on an old release for months. `status()` now
+  has `updates_checked` and `update_error` (feature `update_checks`); Gaffer's health line and
+  `wp gaffer-search status` warn after 7 days without a successful check.
+
 ### Conditional requests behind nginx get a 304 (nothing to change in a theme)
 
 - nginx makes the endpoint's ETag weak (`W/"…"`) when it compresses the answer, and the endpoint

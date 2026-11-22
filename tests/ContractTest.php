@@ -24,7 +24,7 @@ final class ContractTest extends TestCase
     private const string MANIFEST = __DIR__ . '/contract/MANIFEST';
 
     /** Keys whose values change per run: recorded as "*" (present, any value). */
-    private const array VOLATILE = ['time', 'expires'];
+    private const array VOLATILE = ['time', 'expires', 'updates_checked'];
 
     /**
      * Keys whose items are text for people: the contract promises a list of strings (a

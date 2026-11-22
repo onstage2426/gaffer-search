@@ -286,5 +286,9 @@ To fetch it now: open **Dashboard → Updates** (it asks again within a minute),
 wp option delete hu_state-gaffer-search && wp plugin update gaffer-search
 ```
 
-(On a network: `wp site option delete hu_state-gaffer-search`.) After an update, read the
+(On a network: `wp site option delete hu_state-gaffer-search`.) A check that fails (GitHub's
+rate limit for requests without a token is per IP address, shared by every site on a server; the
+updater then waits until GitHub's reset) looks like "no update" to the updater, so the plugin
+records when a check last found the latest release: `wp gaffer-search status` and Gaffer's
+health line warn after 7 days without one, with the last error. After an update, read the
 installed `docs/migration.md` from the version you had.

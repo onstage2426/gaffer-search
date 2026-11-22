@@ -216,6 +216,8 @@ Per defined index:
 | `pending_since` | ?int | feature `pending_updates`: when the oldest of them was logged (Unix time), null when none: an old one means the updates don't run here |
 | `drift` | ?int | feature `health_checks`: how many documents of the last daily sample (about 60, compared with the database) differed: a write that fires no hook (direct SQL, an import past WordPress). They were put in the update log, so the next update fixes them; more than 0 means such writes happen. Null before the first check |
 | `drift_checked` | ?int | feature `health_checks`: when that sample was taken (Unix time), null before the first one |
+| `updates_checked` | int | feature `update_checks`: when the plugin's updater last found the latest release and its built zip (Unix time; before its first check, when this plugin version first ran). The same for every index: one updater serves the site (the network). Days old means the site gets no plugin updates (GitHub unreachable or rate-limited, the repository moved, a release without its zip), which the updater otherwise shows as "no update" |
+| `update_error` | ?string | feature `update_checks`: the last failed check's error when it came after the last successful one, else null |
 | `served` | ?list<string> | feature `health_checks`: the plugin's folders (relative to `wp-content`) that served a probe file to a request like a visitor's in the last daily check: an index file there can be downloaded, hidden documents too (nginx ignores the deny `.htaccess`). Empty: none did; null: not checked yet, or no folder inside the web root |
 
 ### `endpoint(): string`
@@ -277,6 +279,7 @@ adds; from the fourth on, the plugin version that added it. Every release has th
 - `pending_updates`: `status()`'s `pending` and `pending_since`: the content changes an index hasn't taken in yet. The update job runs from WP-cron, which a password-protected or offline site never runs: the index then misses every change until a rebuild.
 - `search_codes` (0.2.0): `search()`'s `code`: an empty response because the index isn't built or the search failed, so a page built from it (an archive, a slider) can stay out of page caches and search engines instead of being kept as an empty page.
 - `health_checks` (0.2.0): `status()`'s `drift`, `drift_checked` and `served`, from a daily job per site: what nothing else notices (content changed without a hook, index files served over HTTP).
+- `update_checks` (0.4.0): `status()`'s `updates_checked` and `update_error`: whether the plugin's updater still finds its releases. A failed check looks like "no update", so a site could stay on an old release unnoticed.
 
 ## Fixtures
 

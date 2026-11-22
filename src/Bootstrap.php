@@ -17,6 +17,7 @@ use GafferSearch\Services\Verifier;
 use GafferSearch\Support\ConfigLocation;
 use GafferSearch\Support\ProtectedDir;
 use GafferSearch\Support\Requirements;
+use GafferSearch\Support\UpdateCheck;
 
 /** @internal Not part of the public API (see API.md): may change in any version. */
 class Bootstrap
@@ -58,11 +59,11 @@ class Bootstrap
                 "DELETE FROM {$wpdb->options} WHERE option_name LIKE 'gaffer\\_search\\_%' OR option_name LIKE '\\_transient\\_gaffer\\_search\\_%' OR option_name LIKE '\\_transient\\_timeout\\_gaffer\\_search\\_%'",
             );
             wp_delete_file(ConfigLocation::forContentDir(WP_CONTENT_DIR, $site));
-            array_map(delete_option(...), self::UPDATER_OPTIONS);
+            array_map(delete_option(...), [...self::UPDATER_OPTIONS, ...UpdateCheck::options()]);
             wp_clear_scheduled_hook(self::UPDATER_CRON);
         });
         if (is_multisite()) {
-            array_map(delete_site_option(...), self::UPDATER_OPTIONS);
+            array_map(delete_site_option(...), [...self::UPDATER_OPTIONS, ...UpdateCheck::options()]);
         }
 
         $root = ConfigLocation::dirForContentDir(WP_CONTENT_DIR);
