@@ -4,20 +4,20 @@
         "Read more about it at https://getcomposer.org/doc/01-basic-usage.md#installing-dependencies",
         "This file is @generated automatically"
     ],
-    "content-hash": "047f9f1b6ab941fe421d32ca639f898f",
+    "content-hash": "c44c8956b8b2cbfde88b0cd4b9c049e0",
     "packages": [
         {
             "name": "onstage2426/fuzor",
-            "version": "2.x-dev",
+            "version": "v2.0.0",
             "source": {
                 "type": "git",
                 "url": "https://github.com/onstage2426/fuzor.git",
-                "reference": "36955f9e5e0bc82de62ba04b6a9f020af63c2ddd"
+                "reference": "826896fbedc0c060f3a3f33ab782225a672f591d"
             },
             "dist": {
                 "type": "zip",
-                "url": "https://api.github.com/repos/onstage2426/fuzor/zipball/36955f9e5e0bc82de62ba04b6a9f020af63c2ddd",
-                "reference": "36955f9e5e0bc82de62ba04b6a9f020af63c2ddd",
+                "url": "https://api.github.com/repos/onstage2426/fuzor/zipball/826896fbedc0c060f3a3f33ab782225a672f591d",
+                "reference": "826896fbedc0c060f3a3f33ab782225a672f591d",
                 "shasum": ""
             },
             "require": {
@@ -34,50 +34,13 @@
                 "rector/rector": "^2.4",
                 "squizlabs/php_codesniffer": "^4.0"
             },
-            "default-branch": true,
             "type": "library",
             "autoload": {
                 "psr-4": {
                     "Fuzor\\": "src"
                 }
             },
-            "autoload-dev": {
-                "psr-4": {
-                    "Fuzor\\Tests\\": "tests",
-                    "Fuzor\\Benchmarks\\": "benchmarks"
-                }
-            },
-            "scripts": {
-                "test": [
-                    "./vendor/bin/phpunit"
-                ],
-                "cs": [
-                    "./vendor/bin/phpcs"
-                ],
-                "cs-fix": [
-                    "./vendor/bin/phpcbf"
-                ],
-                "stan": [
-                    "./vendor/bin/phpstan analyse --memory-limit=1G"
-                ],
-                "bench": [
-                    "./vendor/bin/phpbench run benchmarks/FuzorBench.php --report=default"
-                ],
-                "infect": [
-                    "./vendor/bin/infection --threads=16"
-                ],
-                "rector": [
-                    "./vendor/bin/rector"
-                ],
-                "rector-dry": [
-                    "./vendor/bin/rector --dry-run"
-                ],
-                "check": [
-                    "@cs",
-                    "@stan",
-                    "@test"
-                ]
-            },
+            "notification-url": "https://packagist.org/downloads/",
             "license": [
                 "MIT"
             ],
@@ -111,7 +74,7 @@
                 "issues": "https://github.com/onstage2426/fuzor/issues",
                 "source": "https://github.com/onstage2426/fuzor"
             },
-            "time": "2026-11-18T01:37:23+00:00"
+            "time": "2026-11-22T14:25:27+00:00"
         }
     ],
     "packages-dev": [
@@ -2744,9 +2707,7 @@
     ],
     "aliases": [],
     "minimum-stability": "stable",
-    "stability-flags": {
-        "onstage2426/fuzor": 20
-    },
+    "stability-flags": {},
     "prefer-stable": false,
     "prefer-lowest": false,
     "platform": {

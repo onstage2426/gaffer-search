@@ -35,8 +35,6 @@ Start the next audit here; remove an item when it's done or decided.
   makes every cached page's searches fail (`invalid_token`) until the page cache is cleared.
   Verifying against the previous secret for a day would cost a second option and a second
   `hash_hmac()` for old tokens.
-- **Fuzor has no 2.0 tag yet** (2026-11-21). The plugin pins a `2.x` commit through a VCS
-  repository entry. Move `composer.json` to `^2.0` when Fuzor tags it.
 
 ## Kept for compatibility
 
