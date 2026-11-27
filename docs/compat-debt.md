@@ -28,8 +28,8 @@ Start the next audit here; remove an item when it's done or decided.
   - `gaffer_search_options` (autoloaded, unwritten since 0.3.0's admin screens): move a stored
     `index_dir` out once (show it in `status`), drop the option and its hook.
   - The endpoint's `?check=<site>` probe isn't in the contract and only a test calls it: remove.
-  - `api.txt` misses the response's `code` and the updater's `wp hu` commands; `API.md` names 5
-    commands, `api.txt` 8; exit codes and `status --format=json` aren't documented; `hosting.md`
+  - `api.txt` misses the response's `code` and the updater's `wp hu` commands (the CLI is
+    tooling since 2026-11-27, except the crontab commands); `hosting.md`
     tells hosts to delete the internal `hu_state-gaffer-search`.
   - `contract.md` wording: `updates_checked` is "first read of `status()`", not "first run of
     this version"; `served: null` means not checked or no folder in the web root;

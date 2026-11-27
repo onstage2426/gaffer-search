@@ -5,6 +5,13 @@ to find the affected code, what to do.
 
 ## Unreleased
 
+### Only the crontab commands are promised (nothing to change in a theme)
+
+- `wp gaffer-search update`, `rebuild` and `status` (names, arguments, exit codes) are what a
+  server's crontab runs, so they stay as they are. The other commands, their options and output
+  (`verify`, `describe`, `search`, `clean`, `rotate-secret`, `status --format=json`'s shape) are
+  tooling and may change in a minor release, with an entry here.
+
 ### A change tracking couldn't log rebuilds the indexes (nothing to change in a theme)
 
 - When logging a content change failed (a database error in the hook), the change never reached
